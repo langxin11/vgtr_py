@@ -1,0 +1,35 @@
+[project]
+name = "pneumesh-py"
+version = "0.1.0"
+description = "Modern Python migration plan and future implementation scaffold for PneuMesh"
+readme = "README.md"
+authors = [
+    { name = "langxin11", email = "2658327508@qq.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "msgspec>=0.19.0",
+    "numpy>=2.0.0",
+    "typer>=0.16.0",
+    "viser>=0.2.0",
+]
+
+[project.scripts]
+pneumesh-py = "pneumesh_py:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
