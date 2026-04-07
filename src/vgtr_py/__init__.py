@@ -1,0 +1,58 @@
+"""包初始化与Typer CLI。
+
+此模块定义了项目的入口点组或命令行接口挂载点，便于通过命令行驱动 PneuMesh 系统。
+"""
+
+from pathlib import Path
+
+import typer
+
+from .app import build_app, resolve_runtime_paths
+
+cli = typer.Typer(no_args_is_help=True)
+CONFIG_OPTION = typer.Option(
+    None,
+    "--config",
+    exists=True,
+    dir_okay=False,
+    help="Simulation config JSON path. If omitted, auto-discover from source root.",
+)
+EXAMPLE_OPTION = typer.Option(
+    None,
+    "--example",
+    exists=True,
+    dir_okay=False,
+    help="Example workspace JSON path. If omitted, auto-discover from source root.",
+)
+
+
+@cli.command()
+def plan() -> None:
+    """Print the location of the implementation plan."""
+    project_root = Path(__file__).resolve().parents[2]
+    typer.echo(project_root / "docs" / "IMPLEMENTATION_PLAN.md")
+
+
+@cli.command()
+def serve(
+    config: Path | None = CONFIG_OPTION,
+    example: Path | None = EXAMPLE_OPTION,
+    host: str = "0.0.0.0",
+    port: int = 8080,
+) -> None:
+    """Start the minimal Viser-based VGTR viewer."""
+    resolved_config, resolved_example = resolve_runtime_paths(
+        config_path=config, example_path=example
+    )
+    viewer_app = build_app(
+        config_path=resolved_config,
+        example_path=resolved_example,
+        host=host,
+        port=port,
+    )
+    viewer_app.start()
+    viewer_app.server.sleep_forever()
+
+
+def main() -> None:
+    cli()
