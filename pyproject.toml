@@ -1,5 +1,5 @@
 [project]
-name = "pneumesh-py"
+name = "vgtr-py"
 version = "0.1.0"
 description = "Modern Python migration plan and future implementation scaffold for PneuMesh"
 readme = "README.md"
@@ -15,12 +15,14 @@ dependencies = [
 ]
 
 [project.scripts]
-pneumesh-py = "pneumesh_py:main"
+vgtr-py = "vgtr_py:main"
 
 [dependency-groups]
 dev = [
+    "pydata-sphinx-theme>=0.17.0",
     "pytest>=8.0.0",
     "ruff>=0.8.0",
+    "sphinx>=9.1.0",
 ]
 
 [tool.ruff]
