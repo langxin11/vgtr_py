@@ -1,38 +1,88 @@
-## pneumesh-py
+# ⚙️ vgtr-py
 
-This repository is the new Python-first project for a modernized PneuMesh migration.
+<p align="center">
+  <strong>Variable-Geometry Truss Robot (VGTR) Editor & Simulator</strong>
+</p>
 
-It is intended to preserve the original project's:
+<p align="center">
+  <a href="README.md">English</a> | <a href="README_zh.md">简体中文</a>
+</p>
 
-- lightweight structure editing workflow
-- simplified spring-network dynamics
-- channel/action scripting model
-- JSON-based workspace exchange
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Active%20Development-orange" alt="Status: Active Development">
+  <img src="https://img.shields.io/badge/Python-3.12%2B-blue.svg" alt="Python 3.12+">
+  <img src="https://img.shields.io/badge/Code%20Style-Google-blueviolet" alt="Code Style: Google">
+  <img src="https://img.shields.io/badge/Tests-Passing-success" alt="Tests">
+</p>
 
-It is not intended, at least in v1, to replace MuJoCo or Isaac-based high-fidelity simulation.
+---
 
-## Current Status
+This repository serves as the Python-first editor and lightweight preview simulator for **Variable-Geometry Truss Robots (VGTR)**, directly inspired by the original [PneuMesh](https://github.com/riceroll/pneumesh) project.
 
-This project is currently a scaffold plus implementation plan.
+It reimagines PneuMesh's strengths (such as its simplified spring-network dynamics, color-group selections, and lightweight structures) into a new architectural paradigm that aligns with VGTR anchors, rod groups, and execution controls.
 
-See:
+## 🎯 Goals & Scope
 
-- `docs/IMPLEMENTATION_PLAN.md` for the concrete migration strategy
+This tool retains the robust features of its predecessor:
 
-## Proposed Stack
+- 🏗️ **Lightweight 3D structure editing workflow**
+- 🚀 **Rapid, simplified spring-network dynamics** over rigid-body solvers
+- 🎛️ **Control script models** driven by color groups
+- 🔄 **Universal JSON-based** workspace exchange protocol
 
-- `numpy` for the simulation kernel
-- `viser` for browser-based 3D visualization and GUI
-- `msgspec` for schema validation and JSON I/O
-- `typer` for CLI commands
-- `pytest` and `ruff` for testing and linting
+> [!WARNING]
+> **Not for High-Fidelity:** In its v1 form, this is meant as an interactive design and ideation scaffold. It is not intended to replace highly accurate robotic simulation engines like MuJoCo or Isaac Gym.
 
-## Next Steps
+## 🏛️ Architecture & Current Status
 
-The first planned milestones are:
+The core python packages (`src/vgtr_py/`) have been structurally migrated and functionally fleshed out, with strict adherence to the Google Python Docstring Guide (Chinese).
 
-1. schema + config compatibility with the original PneuMesh JSON files
-2. NumPy-based simulation kernel migration
-3. read-only Viser viewer
-4. interactive editing tools
-5. script grid editor and history support
+- 🗄️ **`workspace.py`, `schema.py`, `topology.py`**: Workspaces define the state-centric hub, graph topology, and Msgspec JSON I/O hooks.
+- ⚙️ **`engine.py`, `kinematics.py`**: The numerical core driving Euler integration and simulated physics behaviors.
+- 🎨 **`rendering.py`**: Maps complex internal topologies into high-quality Viser representation.
+- 💻 **`ui.py`, `commands.py`**: Provides the GUI layers and Typer-backed CLI commands to drive it all.
+- 🕒 **`history.py`**: Implements a fully Snapshot-based undo/redo mechanism.
+
+## 🛠️ Proposed Stack
+
+- **`numpy`** for the core numerical simulation arrays
+- **`viser`** for browser-based 3D visualization and responsive GUI
+- **`msgspec`** for rigorous schema validation and high-performance JSON I/O
+- **`typer`** for unified CLI commands
+- **`pytest`** and **`ruff`** for unit testing and code quality
+
+## 🗺️ Milestones
+
+The current trajectory involves the following steps:
+
+- [x] Schema + Config compatibility with original PneuMesh legacy structures
+- [x] Functional NumPy-based simulation kernel implementation
+- [x] Interactive Viser 3D Viewer integration (Drag, Select, Connect, Delete)
+- [x] Snapshot-based Undo/Redo history tracking system
+- [x] Core internal standardization (Google Style Docstrings & Test passing)
+- [ ] Full Script Grid Editor integration (Timeline-based control patterns)
+
+## 🚀 Quickstart
+
+Requires **Python 3.12** or newer.
+
+```bash
+# 1. Activate your virtual environment
+source .venv/bin/activate
+
+# 2. Install package and dependencies
+pip install -e ".[test]"
+
+# 3. Serve the application
+vgtr-py serve
+```
+
+## 🧪 Testing
+
+This project strictly maintains test coverage. To avoid conflicts with implicit environmental plugins (like older ROS installations), run pytest simply by:
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest
+```
+
+See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) or the `README_zh.md` file for details on the concrete migration strategy and Chinese documentation.
