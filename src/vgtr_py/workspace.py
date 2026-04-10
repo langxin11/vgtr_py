@@ -574,6 +574,17 @@ class Workspace:
         self.physics.control_group_target = np.zeros(self.script.num_channels, dtype=np.float64)
         self.physics.control_group_value = np.zeros(self.script.num_channels, dtype=np.float64)
 
+    def restore_initial_state(self) -> None:
+        self.topology.anchor_pos = self.physics.v0.copy()
+        self.physics.velocities = np.zeros_like(self.topology.anchor_pos)
+        self.physics.forces = np.zeros_like(self.topology.anchor_pos)
+        self.physics.lengths = _edge_lengths(self.topology.anchor_pos, self.topology.rod_anchors)
+        self.physics.num_steps = 0
+        self.physics.i_action = 0
+        self.physics.i_action_prev = 0
+        self.physics.control_group_target = np.zeros(self.script.num_channels, dtype=np.float64)
+        self.physics.control_group_value = np.zeros(self.script.num_channels, dtype=np.float64)
+
     def to_legacy_file(self) -> LegacyWorkspaceFile:
         return LegacyWorkspaceFile(
             v=self.topology.anchor_pos.tolist(),

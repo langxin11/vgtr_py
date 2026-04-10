@@ -3,6 +3,7 @@
 此模块定义了项目的入口点组或命令行接口挂载点，便于通过命令行驱动 PneuMesh 系统。
 """
 
+import logging
 from pathlib import Path
 
 import typer
@@ -41,6 +42,10 @@ def serve(
     port: int = 8080,
 ) -> None:
     """Start the minimal Viser-based VGTR viewer."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     resolved_config, resolved_example = resolve_runtime_paths(
         config_path=config, example_path=example
     )
@@ -51,6 +56,9 @@ def serve(
         port=port,
     )
     viewer_app.start()
+    typer.echo(f"Serving VGTR at http://{host}:{port}")
+    typer.echo(f"Config: {resolved_config}")
+    typer.echo(f"Example: {resolved_example}")
     viewer_app.server.sleep_forever()
 
 

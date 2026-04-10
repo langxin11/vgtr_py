@@ -14,7 +14,7 @@ import viser
 from .workspace import Workspace
 
 VERTEX_RADIUS = 0.06
-EDGE_WIDTH = 2.5
+EDGE_RADIUS = 0.01
 EDGE_PICK_RADIUS = 0.025
 CHANNEL_COLORS = np.asarray(
     [
@@ -46,9 +46,9 @@ class SceneRenderer:
         on_vertex_click: 顶点点击回调。
         on_edge_click: 边点击回调。
         vertex_handles: 顶点图元句柄映射。
+        edge_visual_handles: 可见杆组图元句柄映射。
         edge_handles: 边拾取图元句柄映射。
         transform_handle: 顶点拖拽控制器句柄。
-        line_handle: 边线段句柄。
         selected_drag_index: 当前拖拽的顶点索引。
     """
 
@@ -56,9 +56,9 @@ class SceneRenderer:
     on_vertex_click: Callable[[int], None] | None = None
     on_edge_click: Callable[[int], None] | None = None
     vertex_handles: dict[int, viser.IcosphereHandle] = field(default_factory=dict)
+    edge_visual_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
     edge_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
     transform_handle: viser.TransformControlsHandle | None = None
-    line_handle: viser.LineSegmentsHandle | None = None
     selected_drag_index: int | None = None
 
     def setup_scene(self) -> None:
@@ -90,31 +90,52 @@ class SceneRenderer:
         """
         topology = workspace.topology
         if topology.edges.size == 0:
-            if self.line_handle is not None:
-                self.line_handle.remove()
-                self.line_handle = None
+            for handle in self.edge_visual_handles.values():
+                handle.remove()
+            self.edge_visual_handles.clear()
             for handle in self.edge_handles.values():
                 handle.remove()
             self.edge_handles.clear()
             return
 
-        points = topology.vertices[topology.edges]
-        colors = np.zeros((topology.edges.shape[0], 2, 3), dtype=np.uint8)
-        for edge_index in range(topology.edges.shape[0]):
-            colors[edge_index, :, :] = _edge_color(workspace, edge_index)
-
-        if self.line_handle is None:
-            self.line_handle = self.server.scene.add_line_segments(
-                "/world/edges",
-                points=points,
-                colors=colors,
-                line_width=EDGE_WIDTH,
-            )
-        else:
-            self.line_handle.points = points.astype(np.float32)
-            self.line_handle.colors = colors
-
+        self._render_edge_visuals(workspace)
         self._render_edge_hitboxes(workspace)
+
+    def _render_edge_visuals(self, workspace: Workspace) -> None:
+        topology = workspace.topology
+        existing = set(self.edge_visual_handles)
+        current = set(range(topology.edges.shape[0]))
+
+        for index in existing - current:
+            self.edge_visual_handles.pop(index).remove()
+
+        for index in current:
+            start = topology.vertices[topology.edges[index, 0]]
+            end = topology.vertices[topology.edges[index, 1]]
+            midpoint = tuple(float(x) for x in (start + end) / 2.0)
+            direction = end - start
+            length = float(np.linalg.norm(direction))
+            wxyz = tuple(float(x) for x in _quaternion_from_z_axis(direction))
+            color = tuple(int(x) for x in _edge_color(workspace, index))
+
+            if index not in self.edge_visual_handles:
+                handle = self.server.scene.add_cylinder(
+                    f"/world/edge_visuals/e_{index}",
+                    radius=EDGE_RADIUS,
+                    height=max(length, 1e-4),
+                    color=color,
+                    cast_shadow=False,
+                    receive_shadow=False,
+                    position=midpoint,
+                    wxyz=wxyz,
+                )
+                self.edge_visual_handles[index] = handle
+            else:
+                handle = self.edge_visual_handles[index]
+                handle.position = midpoint
+                handle.wxyz = wxyz
+                handle.height = max(length, 1e-4)
+                handle.color = color
 
     def _render_vertices(self, workspace: Workspace) -> None:
         """渲染顶点为主体球形。
