@@ -1,18 +1,119 @@
 """配置与系统参数模块。
 
-包含了用于物理仿真与模拟的各项配置类（如 SimulationConfig 等），提供了对超参的校验和配置存取逻辑。
+统一提供：
+- 纯 Python 配置入口（RobotConfig / SimulationConfig / AnchorConfig / RodGroupConfig）
+- JSON 仿真参数覆盖读取（load_config）
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import msgspec
 
 
-class _ConfigFile(msgspec.Struct, kw_only=True):
+@dataclass(slots=True)
+class SimulationConfig:
+    """仿真配置。"""
+
+    # 弹簧刚度系数，控制杆组长度误差转化为轴向力的强度。
+    k: float = 20000.0
+    # 仿真时间步长（秒），越小越稳定但计算开销更高。
+    h: float = 0.001
+    # 速度阻尼因子，每步对速度进行衰减以抑制振荡。
+    damping_ratio: float = 0.95
+    # 收缩分档间隔，用于推导最大收缩比例。
+    contraction_interval: float = 0.1
+    # 收缩分档数量，用于推导最大收缩比例。
+    contraction_levels: int = 4
+    # 控制组目标值向当前值逼近的每步最大变化率。
+    contraction_percent_rate: float = 1e-3
+    # 重力加速度缩放因子。
+    gravity_factor: float = 180.0
+    # 是否启用重力。
+    gravity: bool = True
+    # 默认最小长度基准（用于拓扑编辑时新增节点偏移和长度推导基线）。
+    default_min_length: float = 1.2
+    # 地面摩擦速度衰减系数。
+    friction_factor: float = 0.8
+    # 动作周期倍率，num_steps_action = num_steps_action_multiplier / h。
+    num_steps_action_multiplier: float = 2.0
+
+    @property
+    def max_max_contraction(self) -> float:
+        """系统允许的最大收缩比例。"""
+        return round(self.contraction_interval * (self.contraction_levels - 1), 2)
+
+    @property
+    def default_max_length(self) -> float:
+        """由最小长度和最大收缩比例推导默认最大长度。"""
+        return self.default_min_length / (1 - self.max_max_contraction)
+
+    @property
+    def num_steps_action(self) -> float:
+        """单个动作周期对应的仿真步数。"""
+        return self.num_steps_action_multiplier / self.h
+
+
+@dataclass(slots=True)
+class AnchorConfig:
+    """锚点（节点球）配置。"""
+
+    # 锚点球体半径 (m)，用于可视化和碰撞体尺寸。
+    radius: float = 0.04
+    # 锚点质量 (kg)，影响动力学积分结果。
+    mass: float = 0.25
+
+
+@dataclass(slots=True)
+class RodGroupConfig:
+    """杆组显示与长度约束配置。"""
+
+    # 左杆/右杆圆柱半径 (m)。
+    rod_radius: float = 0.0125
+    # 左右杆默认颜色（RGB，0-255），用于可视化材质。
+    rod_color_rgb: list[int] = field(default_factory=lambda: [220, 220, 220])
+    # 套筒默认颜色（RGB，0-255），用于可视化材质（炭黑）。
+    sleeve_color_rgb: list[int] = field(default_factory=lambda: [30, 30, 30])
+    # 套筒半径 (m)，用于套筒圆柱的可视化半径。
+    sleeve_radius: float = 0.020
+    # 套筒显示半长度占比，按当前两锚点距离的比例计算套筒半长度。
+    sleeve_display_half_length_ratio: float = 0.3
+    # 杆端修剪量 (m)，避免杆端和锚点球/套筒几何直接重叠。
+    rod_trim: float = 0.01
+    # 初始姿态约定：每侧杆的内端点位于套筒中心。
+    # 后续两点距离变化通过“左右杆相对套筒滑动”表达，而不是三段比例缩放。
+    initial_inner_end_at_center: bool = True
+    # 长度裕量 delta，满足 L_max = L_min + length_delta。
+    length_delta: float = 0.1
+
+
+@dataclass(slots=True)
+class RobotConfig:
+    """机器人默认配置集合。"""
+
+    # 仿真参数。
+    simulation: SimulationConfig = field(default_factory=SimulationConfig)
+    # 锚点几何与质量参数。
+    anchor: AnchorConfig = field(default_factory=AnchorConfig)
+    # 杆组几何与长度约束参数。
+    rod_group: RodGroupConfig = field(default_factory=RodGroupConfig)
+
+
+def default_robot_config() -> RobotConfig:
+    """返回默认机器人配置。"""
+    return RobotConfig()
+
+
+def default_simulation_config() -> SimulationConfig:
+    """返回默认仿真配置。"""
+    return default_robot_config().simulation
+
+_DEFAULT_SIM = default_simulation_config()
+
+
+class _ConfigFile(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     """用于解析配置文件的内部数据结构。
 
     Attributes:
@@ -26,137 +127,20 @@ class _ConfigFile(msgspec.Struct, kw_only=True):
         gravity: 是否启用重力 (1 表示启用，0 表示禁用)。
         defaultMinLength: 默认最小边长。
         frictionFactor: 摩擦力因子。
-        directionalFriction: 是否启用方向性摩擦 (1 表示启用，0 表示禁用)。
         numStepsActionMultiplier: 动作步数乘数。
-        defaultNumActions: 默认动作数量。
-        defaultNumChannels: 默认通道数量。
-        angleThreshold: 角度阈值。
-        angleCheckFrequencyMultiplier: 角度检查频率乘数。
     """
 
-    k: float = 200000.0
-    h: float = 0.001
-    dampingRatio: float = 0.999
-    contractionInterval: float = 0.1
-    contractionLevels: int = 4
-    contractionPercentRate: float = 1e-3
-    gravityFactor: float = 180.0
-    gravity: int = 1
-    defaultMinLength: float = 1.2
-    frictionFactor: float = 0.8
-    directionalFriction: int = 0
-    numStepsActionMultiplier: float = 2.0
-    defaultNumActions: int = 1
-    defaultNumChannels: int = 5
-    angleThreshold: float = 1.5708
-    angleCheckFrequencyMultiplier: float = 0.05
-
-
-@dataclass(slots=True)
-class SimulationConfig:
-    """仿真环境的配置参数。
-
-    Attributes:
-        k: 弹簧刚度系数。
-        h: 模拟时间步长。
-        damping_ratio: 阻尼比，用于能量衰减。
-        contraction_interval: 每次收缩级别的收缩量间隔。
-        contraction_levels: 允许的收缩级别总数。
-        contraction_percent_rate: 每次迭代的收缩百分比变化率。
-        gravity_factor: 重力影响因子。
-        gravity: 是否启用重力。
-        default_min_length: 默认最小边长。
-        friction_factor: 摩擦力因子。
-        directional_friction: 是否启用方向性摩擦。
-        num_steps_action_multiplier: 动作步数乘数。
-        default_num_actions: 默认动作数量。
-        default_num_channels: 默认通道数量。
-        angle_threshold: 角度阈值，用于特定碰撞或弯曲检测。
-        angle_check_frequency_multiplier: 角度检查频率的乘数。
-    """
-
-    k: float = 200000.0
-    h: float = 0.001
-    damping_ratio: float = 0.999
-    contraction_interval: float = 0.1
-    contraction_levels: int = 4
-    contraction_percent_rate: float = 1e-3
-    gravity_factor: float = 180.0
-    gravity: bool = True
-    default_min_length: float = 1.2
-    friction_factor: float = 0.8
-    directional_friction: bool = False
-    num_steps_action_multiplier: float = 2.0
-    default_num_actions: int = 1
-    default_num_channels: int = 5
-    angle_threshold: float = 1.5708
-    angle_check_frequency_multiplier: float = 0.05
-
-    @property
-    def max_max_contraction(self) -> float:
-        """返回系统允许的最大收缩比例。
-
-        Returns:
-            最大收缩比例（保留两位小数）。
-        """
-        return round(self.contraction_interval * (self.contraction_levels - 1), 2)
-
-    @property
-    def default_max_length(self) -> float:
-        """根据默认最小边长和收缩比例推导默认最大边长。
-
-        Returns:
-            默认最大边长。
-        """
-        return self.default_min_length / (1 - self.max_max_contraction)
-
-    @property
-    def num_steps_action(self) -> float:
-        """返回一个动作周期对应的仿真步数。
-
-        Returns:
-            动作周期步数。
-        """
-        return self.num_steps_action_multiplier / self.h
-
-    @property
-    def angle_check_frequency(self) -> float:
-        """返回角度检查间隔步数。
-
-        Returns:
-            两次角度检查之间的仿真步数。
-        """
-        return self.num_steps_action * self.angle_check_frequency_multiplier
-
-    @classmethod
-    def from_mapping(cls, raw: dict[str, Any]) -> SimulationConfig:
-        """从 JSON 字典构建 ``SimulationConfig``。
-
-        Args:
-            raw: 配置字典。
-
-        Returns:
-            ``SimulationConfig`` 实例。
-        """
-        file_model = msgspec.convert(raw, type=_ConfigFile)
-        return cls(
-            k=file_model.k,
-            h=file_model.h,
-            damping_ratio=file_model.dampingRatio,
-            contraction_interval=file_model.contractionInterval,
-            contraction_levels=file_model.contractionLevels,
-            contraction_percent_rate=file_model.contractionPercentRate,
-            gravity_factor=file_model.gravityFactor,
-            gravity=bool(file_model.gravity),
-            default_min_length=file_model.defaultMinLength,
-            friction_factor=file_model.frictionFactor,
-            directional_friction=bool(file_model.directionalFriction),
-            num_steps_action_multiplier=file_model.numStepsActionMultiplier,
-            default_num_actions=file_model.defaultNumActions,
-            default_num_channels=file_model.defaultNumChannels,
-            angle_threshold=file_model.angleThreshold,
-            angle_check_frequency_multiplier=file_model.angleCheckFrequencyMultiplier,
-        )
+    k: float = _DEFAULT_SIM.k
+    h: float = _DEFAULT_SIM.h
+    dampingRatio: float = _DEFAULT_SIM.damping_ratio
+    contractionInterval: float = _DEFAULT_SIM.contraction_interval
+    contractionLevels: int = _DEFAULT_SIM.contraction_levels
+    contractionPercentRate: float = _DEFAULT_SIM.contraction_percent_rate
+    gravityFactor: float = _DEFAULT_SIM.gravity_factor
+    gravity: int = int(_DEFAULT_SIM.gravity)
+    defaultMinLength: float = _DEFAULT_SIM.default_min_length
+    frictionFactor: float = _DEFAULT_SIM.friction_factor
+    numStepsActionMultiplier: float = _DEFAULT_SIM.num_steps_action_multiplier
 
 
 def default_config() -> SimulationConfig:
@@ -165,7 +149,7 @@ def default_config() -> SimulationConfig:
     Returns:
         默认 ``SimulationConfig`` 实例。
     """
-    return SimulationConfig()
+    return default_simulation_config()
 
 
 def load_config(path: str | Path) -> SimulationConfig:
@@ -183,4 +167,17 @@ def load_config(path: str | Path) -> SimulationConfig:
     raw = msgspec.json.decode(Path(path).read_bytes())
     if not isinstance(raw, dict):
         raise TypeError("config file must decode to a JSON object")
-    return SimulationConfig.from_mapping(raw)
+    file_model = msgspec.convert(raw, type=_ConfigFile)
+    return SimulationConfig(
+        k=file_model.k,
+        h=file_model.h,
+        damping_ratio=file_model.dampingRatio,
+        contraction_interval=file_model.contractionInterval,
+        contraction_levels=file_model.contractionLevels,
+        contraction_percent_rate=file_model.contractionPercentRate,
+        gravity_factor=file_model.gravityFactor,
+        gravity=bool(file_model.gravity),
+        default_min_length=file_model.defaultMinLength,
+        friction_factor=file_model.frictionFactor,
+        num_steps_action_multiplier=file_model.numStepsActionMultiplier,
+    )
