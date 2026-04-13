@@ -57,7 +57,7 @@ def serve(
     )
     viewer_app.start()
     typer.echo(f"Serving VGTR at http://{host}:{port}")
-    typer.echo(f"Config: {resolved_config}")
+    typer.echo(f"Config: {resolved_config if resolved_config is not None else '<python-default>'}")
     typer.echo(f"Example: {resolved_example}")
     viewer_app.server.sleep_forever()
 
