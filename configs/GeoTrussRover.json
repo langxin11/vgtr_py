@@ -1,0 +1,200 @@
+{
+  "root": "ground",
+  "sites": {
+    "s1": {
+      "pos": [-0.282190322357, -0.036888376503, 0.453387723520]
+    },
+    "s2": {
+      "pos": [0.036888376503, -0.036888376503, 0.002142300127]
+    },
+    "s3": {
+      "pos": [0.036888376503, -0.232283376503, 0.340576367672]
+    },
+    "s4": {
+      "pos": [-0.282190322357, 0.158506623497, 0.114953655976]
+    },
+    "s5": {
+      "pos": [-0.282190322357, -0.232283376503, 0.114953655976]
+    },
+    "s6": {
+      "pos": [0.036888376503, 0.158506623497, 0.340576367672]
+    },
+    "s7": {
+      "pos": [0.355967075364, -0.036888376503, 0.453387723520]
+    },
+    "s8": {
+      "pos": [0.355967075364, -0.232283376503, 0.114953655976]
+    },
+    "s9": {
+      "pos": [0.355967075364, 0.158506623497, 0.114953655976]
+    }
+  },
+  "rod_groups": [
+    {
+      "name": "p1",
+      "site1": "s1",
+      "site2": "s3",
+      "actuated": true
+    },
+    {
+      "name": "p2",
+      "site1": "s1",
+      "site2": "s5",
+      "actuated": true
+    },
+    {
+      "name": "p3",
+      "site1": "s1",
+      "site2": "s4",
+      "actuated": true
+    },
+    {
+      "name": "p4",
+      "site1": "s1",
+      "site2": "s6",
+      "actuated": true
+    },
+    {
+      "name": "p5",
+      "site1": "s2",
+      "site2": "s3",
+      "actuated": true
+    },
+    {
+      "name": "p6",
+      "site1": "s2",
+      "site2": "s5",
+      "actuated": true
+    },
+    {
+      "name": "p7",
+      "site1": "s2",
+      "site2": "s4",
+      "actuated": true
+    },
+    {
+      "name": "p8",
+      "site1": "s2",
+      "site2": "s6",
+      "actuated": true
+    },
+    {
+      "name": "p9",
+      "site1": "s3",
+      "site2": "s5",
+      "actuated": true
+    },
+    {
+      "name": "p10",
+      "site1": "s5",
+      "site2": "s4",
+      "actuated": true,
+      "tires": [
+        {
+          "end": "left",
+          "mount_length": 0.055,
+          "axle_offset": 0.035,
+          "diameter": 0.185,
+          "thickness": 0.07,
+          "mount_dir": [-0.577350269190, -0.707106781187, -0.408248290464],
+          "wheel_axis": [-0.000000000000, -1.000000000000, 0.000000000000]
+        },
+        {
+          "end": "right",
+          "mount_length": 0.055,
+          "axle_offset": 0.035,
+          "diameter": 0.185,
+          "thickness": 0.07,
+          "mount_dir": [-0.577350269190, 0.707106781187, -0.408248290464],
+          "wheel_axis": [0.000000000000, 1.000000000000, -0.000000000000]
+        }
+      ]
+    },
+    {
+      "name": "p11",
+      "site1": "s4",
+      "site2": "s6",
+      "actuated": true
+    },
+    {
+      "name": "p12",
+      "site1": "s6",
+      "site2": "s3",
+      "actuated": true
+    },
+    {
+      "name": "p13",
+      "site1": "s2",
+      "site2": "s8",
+      "actuated": true
+    },
+    {
+      "name": "p14",
+      "site1": "s2",
+      "site2": "s9",
+      "actuated": true
+    },
+    {
+      "name": "p15",
+      "site1": "s7",
+      "site2": "s6",
+      "actuated": true
+    },
+    {
+      "name": "p16",
+      "site1": "s7",
+      "site2": "s3",
+      "actuated": true
+    },
+    {
+      "name": "p17",
+      "site1": "s7",
+      "site2": "s8",
+      "actuated": true
+    },
+    {
+      "name": "p18",
+      "site1": "s7",
+      "site2": "s9",
+      "actuated": true
+    },
+    {
+      "name": "p19",
+      "site1": "s3",
+      "site2": "s8",
+      "actuated": true
+    },
+    {
+      "name": "p20",
+      "site1": "s8",
+      "site2": "s9",
+      "actuated": true,
+      "tires": [
+        {
+          "end": "left",
+          "mount_length": 0.055,
+          "axle_offset": 0.035,
+          "diameter": 0.185,
+          "thickness": 0.07,
+          "mount_dir": [0.577350269190, -0.707106781187, -0.408248290464],
+          "wheel_axis": [-0.000000000000, -1.000000000000, 0.000000000000]
+        },
+        {
+          "end": "right",
+          "mount_length": 0.055,
+          "axle_offset": 0.035,
+          "diameter": 0.185,
+          "thickness": 0.07,
+          "mount_dir": [0.577350269190, 0.707106781187, -0.408248290464],
+          "wheel_axis": [0.000000000000, 1.000000000000, -0.000000000000]
+        }
+      ]
+    },
+    {
+      "name": "p21",
+      "site1": "s9",
+      "site2": "s6",
+      "actuated": true
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "sites": {
+    "s1": {
+      "pos": [0.0, 0.0, 0.0],
+      "fixed": true
+    },
+    "s2": {
+      "pos": [1.2, 0.0, 0.0]
+    }
+  },
+  "rod_groups": [
+    {
+      "name": "g12",
+      "site1": "s1",
+      "site2": "s2",
+      "actuated": true,
+      "control_group": "drive_A",
+      "rest_length": 1.2,
+      "min_length": 0.9
+    }
+  ],
+  "control_groups": [
+    {
+      "name": "drive_A",
+      "color": [0.8, 0.4, 0.1],
+      "default_target": 0.0,
+      "enabled": true
+    }
+  ],
+  "script": [
+    [0.0, 1.0]
+  ],
+  "numActions": 2
+}
