@@ -11,18 +11,23 @@ from .workspace import Workspace
 
 
 def precompute(workspace: Workspace) -> None:
-    """预计算并同步工作区的状态数组大小。"""
+    """同步拓扑与运行时数组尺寸，并刷新派生长度缓存。"""
+    sync_workspace_shapes(workspace)
+    refresh_derived_state(workspace)
+
+
+def sync_workspace_shapes(workspace: Workspace) -> None:
+    """拓扑/脚本变更后调用：同步所有状态数组尺寸。"""
     topology = workspace.topology
     physics = workspace.physics
     script = workspace.script
     config = workspace.config
+    robot = workspace.robot_config
 
     num_anchors = topology.anchor_pos.shape[0]
     num_rod_groups = topology.rod_anchors.shape[0]
     num_control_groups = script.num_channels
     num_actions = script.num_actions
-
-    physics.lengths = _rod_group_lengths(topology.anchor_pos, topology.rod_anchors)
 
     if physics.velocities.shape != topology.anchor_pos.shape:
         new_velocities = np.zeros((num_anchors, 3), dtype=np.float64)
@@ -34,8 +39,16 @@ def precompute(workspace: Workspace) -> None:
         physics.forces = np.zeros((num_anchors, 3), dtype=np.float64)
 
     topology.anchor_fixed = _resize_bool_array(topology.anchor_fixed, num_anchors, False)
-    topology.anchor_mass = _resize_float_array(topology.anchor_mass, num_anchors, 1.0)
-    topology.anchor_radius = _resize_float_array(topology.anchor_radius, num_anchors, 0.06)
+    topology.anchor_mass = _resize_float_array(
+        topology.anchor_mass,
+        num_anchors,
+        float(robot.anchor.mass),
+    )
+    topology.anchor_radius = _resize_float_array(
+        topology.anchor_radius,
+        num_anchors,
+        float(robot.anchor.radius),
+    )
     topology.rod_rest_length = _resize_float_array(
         topology.rod_rest_length, num_rod_groups, config.default_max_length
     )
@@ -48,8 +61,23 @@ def precompute(workspace: Workspace) -> None:
     topology.rod_actuated = _resize_bool_array(topology.rod_actuated, num_rod_groups, False)
     topology.rod_control_group = _resize_int_array(topology.rod_control_group, num_rod_groups, 0)
     topology.rod_group_mass = _resize_float_array(topology.rod_group_mass, num_rod_groups, 1.0)
-    topology.rod_radius = _resize_float_array(topology.rod_radius, num_rod_groups, 0.02)
-    topology.rod_sleeve_half = _resize_float3_array(topology.rod_sleeve_half, num_rod_groups)
+    topology.rod_radius = _resize_float_array(
+        topology.rod_radius,
+        num_rod_groups,
+        float(robot.rod_group.rod_radius),
+    )
+    topology.rod_sleeve_half = _resize_float3_array(
+        topology.rod_sleeve_half,
+        num_rod_groups,
+        np.asarray(
+            [
+                float(robot.rod_group.sleeve_radius),
+                float(robot.rod_group.sleeve_radius),
+                float(robot.rod_group.sleeve_display_half_length_ratio),
+            ],
+            dtype=np.float64,
+        ),
+    )
 
     physics.control_group_target = _resize_float_array(
         physics.control_group_target,
@@ -79,6 +107,14 @@ def precompute(workspace: Workspace) -> None:
     workspace.ui.anchor_status = _resize_status_array(workspace.ui.anchor_status, num_anchors)
     workspace.ui.rod_group_status = _resize_status_array(
         workspace.ui.rod_group_status, num_rod_groups
+    )
+
+
+def refresh_derived_state(workspace: Workspace) -> None:
+    """每帧可调用：刷新由拓扑直接派生的运行时缓存。"""
+    workspace.physics.lengths = _rod_group_lengths(
+        workspace.topology.anchor_pos,
+        workspace.topology.rod_anchors,
     )
 
 
@@ -257,8 +293,8 @@ def _resize_status_array(array: np.ndarray, size: int) -> np.ndarray:
     return resized
 
 
-def _resize_float3_array(array: np.ndarray, size: int) -> np.ndarray:
-    resized = np.zeros((size, 3), dtype=np.float64)
+def _resize_float3_array(array: np.ndarray, size: int, fill: np.ndarray) -> np.ndarray:
+    resized = np.tile(fill, (size, 1)).astype(np.float64)
     if array.size == 0:
         return resized
     resized[: min(size, array.shape[0])] = array[:size]

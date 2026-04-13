@@ -1,7 +1,4 @@
-"""网格拓扑操作系统核心。
-
-集成了对 PneuMesh 无向图模型的各类直接操作，支持顶点的提取、修改及图结构边界与连通成分的诊断功能。
-"""
+"""拓扑编辑核心。"""
 
 from __future__ import annotations
 
@@ -11,168 +8,178 @@ from .engine import precompute
 from .workspace import Workspace
 
 
-def selected_vertex_indices(workspace: Workspace) -> np.ndarray:
-    """返回当前选中的顶点索引。
+def selected_anchor_indices(workspace: Workspace) -> np.ndarray:
+    """返回当前选中的 anchor 索引。
 
     Args:
         workspace: 当前工作区。
 
     Returns:
-        选中顶点索引数组。
+        选中 anchor 索引数组。
     """
-    return np.flatnonzero(workspace.ui.vertex_status == 2)
+    return np.flatnonzero(workspace.ui.anchor_status == 2)
 
 
-def selected_edge_indices(workspace: Workspace) -> np.ndarray:
-    """返回当前选中的边索引。
+def selected_rod_group_indices(workspace: Workspace) -> np.ndarray:
+    """返回当前选中的 rod_group 索引。
 
     Args:
         workspace: 当前工作区。
 
     Returns:
-        选中边索引数组。
+        选中 rod_group 索引数组。
     """
-    return np.flatnonzero(workspace.ui.edge_status == 2)
+    return np.flatnonzero(workspace.ui.rod_group_status == 2)
 
 
 def clear_selection(workspace: Workspace) -> None:
-    """清空顶点、边和面的选择状态。
+    """清空 anchor、rod_group 和面的选择状态。
 
     Args:
         workspace: 当前工作区。
     """
-    workspace.ui.vertex_status.fill(0)
-    workspace.ui.edge_status.fill(0)
+    workspace.ui.anchor_status.fill(0)
+    workspace.ui.rod_group_status.fill(0)
     workspace.ui.face_status.fill(0)
 
 
-def select_vertex(workspace: Workspace, index: int, *, additive: bool = False) -> None:
-    """选中指定顶点；非增量模式会先清空已有选择。
+def select_anchor(workspace: Workspace, index: int, *, additive: bool = False) -> None:
+    """选中指定 anchor；非增量模式会先清空已有选择。
 
     Args:
         workspace: 当前工作区。
-        index: 顶点索引。
+        index: anchor 索引。
         additive: 是否保留已有选择。
     """
     if not additive:
         clear_selection(workspace)
-    workspace.ui.vertex_status[index] = 2
+    workspace.ui.anchor_status[index] = 2
 
 
-def toggle_vertex_selection(workspace: Workspace, index: int) -> None:
-    """切换指定顶点的选中状态。
+def toggle_anchor_selection(workspace: Workspace, index: int) -> None:
+    """切换指定 anchor 的选中状态。
 
     Args:
         workspace: 当前工作区。
-        index: 顶点索引。
+        index: anchor 索引。
     """
-    current = workspace.ui.vertex_status[index]
-    workspace.ui.vertex_status[index] = 0 if current == 2 else 2
+    current = workspace.ui.anchor_status[index]
+    workspace.ui.anchor_status[index] = 0 if current == 2 else 2
 
 
-def select_edge(workspace: Workspace, index: int, *, additive: bool = False) -> None:
-    """选中指定边；非增量模式会先清空已有选择。
+def select_rod_group(workspace: Workspace, index: int, *, additive: bool = False) -> None:
+    """选中指定 rod_group；非增量模式会先清空已有选择。
 
     Args:
         workspace: 当前工作区。
-        index: 边索引。
+        index: rod_group 索引。
         additive: 是否保留已有选择。
     """
     if not additive:
         clear_selection(workspace)
-    workspace.ui.edge_status[index] = 2
+    workspace.ui.rod_group_status[index] = 2
 
 
-def toggle_edge_selection(workspace: Workspace, index: int) -> None:
-    """切换指定边的选中状态。
+def toggle_rod_group_selection(workspace: Workspace, index: int) -> None:
+    """切换指定 rod_group 的选中状态。
 
     Args:
         workspace: 当前工作区。
-        index: 边索引。
+        index: rod_group 索引。
     """
-    current = workspace.ui.edge_status[index]
-    workspace.ui.edge_status[index] = 0 if current == 2 else 2
+    current = workspace.ui.rod_group_status[index]
+    workspace.ui.rod_group_status[index] = 0 if current == 2 else 2
 
 
 def add_joint(workspace: Workspace, source_index: int | None = None) -> int:
-    """新增一个顶点，并在给定源顶点时自动创建连接边。
+    """新增一个 anchor，并在给定源 anchor 时自动创建连接 rod_group。
 
     Args:
         workspace: 当前工作区。
-        source_index: 源顶点索引。
+        source_index: 源 anchor 索引。
 
     Returns:
-        新顶点索引。
+        新 anchor 索引。
     """
     topology = workspace.topology
     config = workspace.config
+    robot = workspace.robot_config
 
     if source_index is None:
-        if topology.vertices.size == 0:
+        if topology.anchor_pos.size == 0:
             source = np.zeros(3, dtype=np.float64)
         else:
-            source = topology.vertices.mean(axis=0)
+            source = topology.anchor_pos.mean(axis=0)
     else:
-        source = topology.vertices[source_index]
+        source = topology.anchor_pos[source_index]
 
-    new_vertex = source.copy()
-    new_vertex[0] += config.default_min_length
+    new_anchor = source.copy()
+    new_anchor[0] += config.default_min_length
 
-    topology.vertices = np.vstack([topology.vertices, new_vertex])
-    topology.fixed_vs = np.append(topology.fixed_vs, False)
-    topology.anchor_ids.append(f"s{topology.vertices.shape[0]}")
-    topology.anchor_mass = np.append(topology.anchor_mass, 1.0)
-    topology.anchor_radius = np.append(topology.anchor_radius, 0.06)
+    topology.anchor_pos = np.vstack([topology.anchor_pos, new_anchor])
+    topology.anchor_fixed = np.append(topology.anchor_fixed, False)
+    topology.anchor_ids.append(f"s{topology.anchor_pos.shape[0]}")
+    topology.anchor_mass = np.append(topology.anchor_mass, float(robot.anchor.mass))
+    topology.anchor_radius = np.append(topology.anchor_radius, float(robot.anchor.radius))
 
     if source_index is not None:
-        new_edge = np.asarray([[source_index, topology.vertices.shape[0] - 1]], dtype=np.int32)
-        topology.edges = np.vstack([topology.edges, new_edge]) if topology.edges.size else new_edge
+        new_rod_group = np.asarray(
+            [[source_index, topology.anchor_pos.shape[0] - 1]],
+            dtype=np.int32,
+        )
+        topology.rod_anchors = (
+            np.vstack([topology.rod_anchors, new_rod_group])
+            if topology.rod_anchors.size
+            else new_rod_group
+        )
         topology.rod_group_ids.append(f"g{len(topology.rod_group_ids)}")
 
     precompute(workspace)
-    workspace.physics.v0 = _record_v0(workspace.topology.vertices)
+    workspace.physics.v0 = _record_v0(workspace.topology.anchor_pos)
     clear_selection(workspace)
-    workspace.ui.vertex_status[topology.vertices.shape[0] - 1] = 2
-    return topology.vertices.shape[0] - 1
+    workspace.ui.anchor_status[topology.anchor_pos.shape[0] - 1] = 2
+    return topology.anchor_pos.shape[0] - 1
 
 
-def connect_vertices(workspace: Workspace, indices: np.ndarray | None = None) -> int:
-    """在指定顶点之间补齐缺失的两两连接。
+def connect_anchors(workspace: Workspace, indices: np.ndarray | None = None) -> int:
+    """在指定 anchor 之间补齐缺失的两两连接。
 
     Args:
         workspace: 当前工作区。
-        indices: 顶点索引数组；为空时使用当前选中顶点。
+        indices: anchor 索引数组；为空时使用当前选中 anchors。
 
     Returns:
-        新增边数量。
+        新增 rod_group 数量。
     """
     topology = workspace.topology
     if indices is None:
-        indices = selected_vertex_indices(workspace)
+        indices = selected_anchor_indices(workspace)
     indices = np.asarray(indices, dtype=np.int32)
     if indices.size < 2:
         return 0
 
-    existing = {tuple(sorted(edge)) for edge in topology.edges.tolist()}
-    new_edges: list[list[int]] = []
+    existing = {tuple(sorted(anchors)) for anchors in topology.rod_anchors.tolist()}
+    new_rod_groups: list[list[int]] = []
     for i in range(indices.shape[0]):
         for j in range(i + 1, indices.shape[0]):
             pair = tuple(sorted((int(indices[i]), int(indices[j]))))
             if pair not in existing:
                 existing.add(pair)
-                new_edges.append([pair[0], pair[1]])
+                new_rod_groups.append([pair[0], pair[1]])
 
-    if not new_edges:
+    if not new_rod_groups:
         return 0
 
-    new_edge_array = np.asarray(new_edges, dtype=np.int32)
-    topology.edges = (
-        np.vstack([topology.edges, new_edge_array]) if topology.edges.size else new_edge_array
+    new_rod_group_array = np.asarray(new_rod_groups, dtype=np.int32)
+    topology.rod_anchors = (
+        np.vstack([topology.rod_anchors, new_rod_group_array])
+        if topology.rod_anchors.size
+        else new_rod_group_array
     )
-    for _ in range(new_edge_array.shape[0]):
+    for _ in range(new_rod_group_array.shape[0]):
         topology.rod_group_ids.append(f"g{len(topology.rod_group_ids)}")
     precompute(workspace)
-    return new_edge_array.shape[0]
+    return new_rod_group_array.shape[0]
 
 
 def remove_selected_edges(workspace: Workspace) -> int:
@@ -184,11 +191,11 @@ def remove_selected_edges(workspace: Workspace) -> int:
     Returns:
         删除的边数量。
     """
-    indices = selected_edge_indices(workspace)
+    indices = selected_rod_group_indices(workspace)
     if indices.size == 0:
         return 0
 
-    keep = np.ones(workspace.topology.edges.shape[0], dtype=np.bool_)
+    keep = np.ones(workspace.topology.rod_anchors.shape[0], dtype=np.bool_)
     keep[indices] = False
     _filter_edges(workspace, keep)
     clear_selection(workspace)
@@ -204,30 +211,34 @@ def remove_selected_vertices(workspace: Workspace) -> int:
     Returns:
         删除的顶点数量。
     """
-    selected = selected_vertex_indices(workspace)
+    selected = selected_anchor_indices(workspace)
     if selected.size == 0:
         return 0
 
-    keep_vertex = np.ones(workspace.topology.vertices.shape[0], dtype=np.bool_)
+    keep_vertex = np.ones(workspace.topology.anchor_pos.shape[0], dtype=np.bool_)
     keep_vertex[selected] = False
     if not np.any(keep_vertex):
         return 0
 
-    index_map = -np.ones(workspace.topology.vertices.shape[0], dtype=np.int32)
+    index_map = -np.ones(workspace.topology.anchor_pos.shape[0], dtype=np.int32)
     index_map[keep_vertex] = np.arange(np.count_nonzero(keep_vertex), dtype=np.int32)
 
     topology = workspace.topology
-    topology.vertices = topology.vertices[keep_vertex]
-    topology.fixed_vs = topology.fixed_vs[keep_vertex]
+    topology.anchor_pos = topology.anchor_pos[keep_vertex]
+    topology.anchor_fixed = topology.anchor_fixed[keep_vertex]
     topology.anchor_ids = [
-        anchor_id for keep, anchor_id in zip(keep_vertex.tolist(), topology.anchor_ids, strict=False) if keep
+        anchor_id
+        for keep, anchor_id in zip(keep_vertex.tolist(), topology.anchor_ids, strict=False)
+        if keep
     ]
     topology.anchor_mass = topology.anchor_mass[keep_vertex]
     topology.anchor_radius = topology.anchor_radius[keep_vertex]
 
-    if topology.edges.size:
-        edge_keep = keep_vertex[topology.edges[:, 0]] & keep_vertex[topology.edges[:, 1]]
-        kept_edges = topology.edges[edge_keep]
+    if topology.rod_anchors.size:
+        edge_keep = (
+            keep_vertex[topology.rod_anchors[:, 0]] & keep_vertex[topology.rod_anchors[:, 1]]
+        )
+        kept_edges = topology.rod_anchors[edge_keep]
         topology.rod_group_ids = [
             rod_group_id
             for keep, rod_group_id in zip(edge_keep.tolist(), topology.rod_group_ids, strict=False)
@@ -286,29 +297,29 @@ def remove_selected_vertices(workspace: Workspace) -> int:
         topology.rod_sleeve_half = topology.rod_sleeve_half[:0]
         remapped_edges = np.zeros((0, 2), dtype=np.int32)
 
-    topology.edges = remapped_edges.astype(np.int32, copy=False)
-    workspace.physics.v0 = _record_v0(topology.vertices)
+    topology.rod_anchors = remapped_edges.astype(np.int32, copy=False)
+    workspace.physics.v0 = _record_v0(topology.anchor_pos)
     precompute(workspace)
     clear_selection(workspace)
     return selected.size
 
 
-def move_selected_vertices(workspace: Workspace, delta: np.ndarray) -> int:
-    """将所有选中顶点按给定位移向量平移。
+def move_selected_anchors(workspace: Workspace, delta: np.ndarray) -> int:
+    """将所有选中 anchor 按给定位移向量平移。
 
     Args:
         workspace: 当前工作区。
         delta: 位移向量。
 
     Returns:
-        被平移的顶点数量。
+        被平移的 anchor 数量。
     """
-    selected = selected_vertex_indices(workspace)
+    selected = selected_anchor_indices(workspace)
     if selected.size == 0:
         return 0
 
-    workspace.topology.vertices[selected] += np.asarray(delta, dtype=np.float64)
-    workspace.physics.v0 = _record_v0(workspace.topology.vertices)
+    workspace.topology.anchor_pos[selected] += np.asarray(delta, dtype=np.float64)
+    workspace.physics.v0 = _record_v0(workspace.topology.anchor_pos)
     precompute(workspace)
     return selected.size
 
@@ -321,8 +332,8 @@ def set_selected_vertices_position(workspace: Workspace, index: int, position: n
         index: 顶点索引。
         position: 目标坐标。
     """
-    workspace.topology.vertices[index] = np.asarray(position, dtype=np.float64)
-    workspace.physics.v0 = _record_v0(workspace.topology.vertices)
+    workspace.topology.anchor_pos[index] = np.asarray(position, dtype=np.float64)
+    workspace.physics.v0 = _record_v0(workspace.topology.anchor_pos)
     precompute(workspace)
 
 
@@ -336,10 +347,10 @@ def set_selected_fixed(workspace: Workspace, fixed: bool) -> int:
     Returns:
         更新的顶点数量。
     """
-    selected = selected_vertex_indices(workspace)
+    selected = selected_anchor_indices(workspace)
     if selected.size == 0:
         return 0
-    workspace.topology.fixed_vs[selected] = fixed
+    workspace.topology.anchor_fixed[selected] = fixed
     return selected.size
 
 
@@ -349,17 +360,17 @@ def center_model(workspace: Workspace) -> None:
     Args:
         workspace: 当前工作区。
     """
-    vertices = workspace.topology.vertices
-    if vertices.size == 0:
+    anchors = workspace.topology.anchor_pos
+    if anchors.size == 0:
         return
-    centroid = vertices.mean(axis=0)
-    z_min = vertices[:, 2].min()
-    z_max = vertices[:, 2].max()
-    vertices[:, 0] -= centroid[0]
-    vertices[:, 1] -= centroid[1]
-    vertices[:, 2] -= z_min
-    vertices[:, 2] += z_max - z_min
-    workspace.physics.v0 = _record_v0(vertices)
+    centroid = anchors.mean(axis=0)
+    z_min = anchors[:, 2].min()
+    z_max = anchors[:, 2].max()
+    anchors[:, 0] -= centroid[0]
+    anchors[:, 1] -= centroid[1]
+    anchors[:, 2] -= z_min
+    anchors[:, 2] += z_max - z_min
+    workspace.physics.v0 = _record_v0(anchors)
     precompute(workspace)
 
 
@@ -373,7 +384,7 @@ def _filter_edges(workspace: Workspace, keep: np.ndarray, *, preserve_edges: boo
     """
     topology = workspace.topology
     if not preserve_edges:
-        topology.edges = topology.edges[keep]
+        topology.rod_anchors = topology.rod_anchors[keep]
     topology.rod_group_ids = [
         rod_group_id
         for include, rod_group_id in zip(keep.tolist(), topology.rod_group_ids, strict=False)

@@ -58,19 +58,23 @@ class WorkspaceHistory:
 def snapshots_equal(left: WorkspaceSnapshot, right: WorkspaceSnapshot) -> bool:
     """比较两个工作区快照是否完全一致。"""
     return (
-        np.array_equal(left.topology.vertices, right.topology.vertices)
-        and np.array_equal(left.topology.edges, right.topology.edges)
-        and np.array_equal(left.topology.fixed_vs, right.topology.fixed_vs)
-        and np.array_equal(left.topology.l_max, right.topology.l_max)
-        and np.array_equal(left.topology.max_contraction, right.topology.max_contraction)
-        and np.array_equal(left.topology.edge_channel, right.topology.edge_channel)
-        and np.array_equal(left.topology.edge_active, right.topology.edge_active)
+        np.array_equal(left.topology.anchor_pos, right.topology.anchor_pos)
+        and np.array_equal(left.topology.rod_anchors, right.topology.rod_anchors)
+        and np.array_equal(left.topology.anchor_fixed, right.topology.anchor_fixed)
+        and np.array_equal(left.topology.rod_rest_length, right.topology.rod_rest_length)
+        and np.array_equal(left.topology.rod_min_length, right.topology.rod_min_length)
+        and np.array_equal(left.topology.rod_control_group, right.topology.rod_control_group)
+        and np.array_equal(left.topology.rod_enabled, right.topology.rod_enabled)
+        and np.array_equal(left.topology.rod_actuated, right.topology.rod_actuated)
+        and np.array_equal(left.topology.rod_group_mass, right.topology.rod_group_mass)
+        and np.array_equal(left.topology.rod_radius, right.topology.rod_radius)
+        and np.array_equal(left.topology.rod_sleeve_half, right.topology.rod_sleeve_half)
         and np.array_equal(left.physics.v0, right.physics.v0)
         and np.array_equal(left.physics.velocities, right.physics.velocities)
         and np.array_equal(left.physics.forces, right.physics.forces)
         and np.array_equal(left.physics.lengths, right.physics.lengths)
-        and np.array_equal(left.physics.inflate_channel, right.physics.inflate_channel)
-        and np.array_equal(left.physics.contraction_percent, right.physics.contraction_percent)
+        and np.array_equal(left.physics.control_group_target, right.physics.control_group_target)
+        and np.array_equal(left.physics.control_group_value, right.physics.control_group_value)
         and left.physics.num_steps == right.physics.num_steps
         and left.physics.i_action == right.physics.i_action
         and left.physics.i_action_prev == right.physics.i_action_prev
@@ -79,13 +83,13 @@ def snapshots_equal(left: WorkspaceSnapshot, right: WorkspaceSnapshot) -> bool:
         and np.array_equal(left.script.script, right.script.script)
         and left.script.num_channels == right.script.num_channels
         and left.script.num_actions == right.script.num_actions
-        and np.array_equal(left.ui.vertex_status, right.ui.vertex_status)
-        and np.array_equal(left.ui.edge_status, right.ui.edge_status)
+        and np.array_equal(left.ui.anchor_status, right.ui.anchor_status)
+        and np.array_equal(left.ui.rod_group_status, right.ui.rod_group_status)
         and np.array_equal(left.ui.face_status, right.ui.face_status)
         and left.ui.editing == right.ui.editing
-        and left.ui.moving_joint == right.ui.moving_joint
+        and left.ui.moving_anchor == right.ui.moving_anchor
         and left.ui.moving_body == right.ui.moving_body
-        and left.ui.show_channel == right.ui.show_channel
+        and left.ui.show_control_group == right.ui.show_control_group
         and left.ui.simulate == right.ui.simulate
         and left.ui.record == right.ui.record
     )
