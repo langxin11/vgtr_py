@@ -54,6 +54,14 @@ class WorkspaceHistory:
     def can_redo(self) -> bool:
         return bool(self._redo_stack)
 
+    @property
+    def undo_stack_size(self) -> int:
+        return len(self._undo_stack)
+
+    @property
+    def redo_stack_size(self) -> int:
+        return len(self._redo_stack)
+
 
 def snapshots_equal(left: WorkspaceSnapshot, right: WorkspaceSnapshot) -> bool:
     """比较两个工作区快照是否完全一致。"""

@@ -24,12 +24,13 @@ def make_source_root(tmp_path: Path) -> Path:
     example_path = source_root / DEFAULT_EXAMPLE_RELATIVE_PATH
 
     # 创建逐级父目录
-    config_path.parent.mkdir(parents=True)
-    example_path.parent.mkdir(parents=True)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    example_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 写入基础测试内容
     config_path.write_text("{}", encoding="utf-8")
-    example_path.write_text('{"v": [], "e": []}', encoding="utf-8")
+    # 使用正确的 VGTR 模式写入示例
+    example_path.write_text('{"sites": {}, "rod_groups": []}', encoding="utf-8")
     return source_root
 
 
@@ -88,5 +89,5 @@ def test_resolve_source_root_raises_clear_error_when_defaults_missing(
     monkeypatch.setattr(app_module, "candidate_source_roots", lambda: [])
 
     # Act & Assert: 验证是否干净利落地抛出包含具体指导信息的异常
-    with pytest.raises(FileNotFoundError, match="pass --config and --example"):
+    with pytest.raises(FileNotFoundError, match="pass --example"):
         resolve_source_root()

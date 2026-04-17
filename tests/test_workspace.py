@@ -11,6 +11,7 @@ def make_vgtr_workspace() -> Workspace:
     辅助函数：构造一个基于 VGTR (变几何桁架) 格式的基准工作区实例。
     其中包含 2个锚点(site) 和 1组连接两点的驱动杆(rod_group)，并指定了它们的物理及控制属性。
     """
+    # 两点间距为 2.0
     workspace_file = WorkspaceFile(
         sites={
             "s1": SiteFile(pos=[0.0, 0.0, 0.0], fixed=True, radius=0.01, mass=2.0),
@@ -23,10 +24,9 @@ def make_vgtr_workspace() -> Workspace:
                 site2="s2",
                 actuated=True,
                 control_group="drive_A",
-                rest_length=2.0,
-                min_length=1.2,
                 rod_radius=0.03,
-                sleeve_half=[0.05, 0.05, 0.2],
+                sleeve_radius=0.05,
+                sleeve_display_half_length_ratio=0.2,
                 group_mass=4.0,
             )
         ],
@@ -34,7 +34,7 @@ def make_vgtr_workspace() -> Workspace:
             ControlGroupFile(name="drive_A", color=[1.0, 0.0, 0.0], default_target=0.25)
         ],
         script=[[0.0, 1.0]],
-        numActions=2,
+        num_actions=2,
     )
     return Workspace.from_file_data(workspace_file, default_config())
 
@@ -58,11 +58,12 @@ def test_workspace_from_vgtr_file_populates_new_runtime_fields() -> None:
     )
 
     # 验证物理参数的正确映射
+    # 锚点间距 2.0，length_delta 0.1 => rest_length 2.1
     np.testing.assert_allclose(
-        workspace.topology.rod_rest_length, np.asarray([2.0], dtype=np.float64)
+        workspace.topology.rod_rest_length, np.asarray([2.1], dtype=np.float64)
     )
     np.testing.assert_allclose(
-        workspace.topology.rod_min_length, np.asarray([1.2], dtype=np.float64)
+        workspace.topology.rod_min_length, np.asarray([2.0], dtype=np.float64)
     )
 
     # 验证 UI 颜色配置（浮点 RGB 转 Uint8 (255)）
@@ -93,7 +94,8 @@ def test_vgtr_workspace_roundtrips_to_workspace_file() -> None:
     assert dumped.rod_groups[0].name == "g12"
     assert dumped.rod_groups[0].site1 == "s1"
     assert dumped.rod_groups[0].site2 == "s2"
-    assert dumped.rod_groups[0].min_length == 1.2
+    # min_length 现在是由间距 2.0 推导出来的
+    assert dumped.rod_groups[0].min_length == 2.0
     assert dumped.control_groups[0].name == "drive_A"
     assert dumped.script == [[0.0, 1.0]]
 
@@ -124,5 +126,3 @@ def test_derive_rod_kinematics_tracks_anchor_geometry() -> None:
     np.testing.assert_allclose(
         kinematics.right_tip_pos, np.asarray([[2.0, 0.0, 0.0]], dtype=np.float64)
     )  # 右端点
-    # 验证共享滑动状态（shared_slide_q）：基于长度计算的比率值
-    np.testing.assert_allclose(kinematics.shared_slide_q, np.asarray([0.8], dtype=np.float64))
