@@ -46,7 +46,9 @@ class SceneRenderer:
         on_anchor_click: 锚点点击回调。
         on_rod_group_click: 杆组点击回调。
         anchor_handles: 锚点图元句柄映射。
-        rod_visual_handles: 可见杆组图元句柄映射。
+        sleeve_handles: 杆组套筒图元句柄映射。
+        rod_l_handles: 杆组左端活塞图元句柄映射。
+        rod_r_handles: 杆组右端活塞图元句柄映射。
         rod_hitbox_handles: 杆组拾取图元句柄映射。
         transform_handle: 锚点拖拽控制器句柄。
         selected_drag_index: 当前拖拽的锚点索引。
@@ -56,7 +58,12 @@ class SceneRenderer:
     on_anchor_click: Callable[[int], None] | None = None
     on_rod_group_click: Callable[[int], None] | None = None
     anchor_handles: dict[int, viser.IcosphereHandle] = field(default_factory=dict)
-    rod_visual_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
+    
+    # 三段式渲染句柄
+    sleeve_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
+    rod_l_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
+    rod_r_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
+    
     rod_hitbox_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
     transform_handle: viser.TransformControlsHandle | None = None
     selected_drag_index: int | None = None
@@ -90,12 +97,11 @@ class SceneRenderer:
         """
         topology = workspace.topology
         if topology.rod_anchors.size == 0:
-            for handle in self.rod_visual_handles.values():
-                handle.remove()
-            self.rod_visual_handles.clear()
-            for handle in self.rod_hitbox_handles.values():
-                handle.remove()
-            self.rod_hitbox_handles.clear()
+            # 清理所有三段式句柄
+            for dic in [self.sleeve_handles, self.rod_l_handles, self.rod_r_handles, self.rod_hitbox_handles]:
+                for handle in dic.values():
+                    handle.remove()
+                dic.clear()
             return
 
         self._render_rod_visuals(workspace)
@@ -103,39 +109,85 @@ class SceneRenderer:
 
     def _render_rod_visuals(self, workspace: Workspace) -> None:
         topology = workspace.topology
-        existing = set(self.rod_visual_handles)
+        robot = workspace.robot_config
+        existing = set(self.sleeve_handles)
         current = set(range(topology.rod_anchors.shape[0]))
 
+        # 移除已废弃的句柄
         for index in existing - current:
-            self.rod_visual_handles.pop(index).remove()
+            self.sleeve_handles.pop(index).remove()
+            self.rod_l_handles.pop(index).remove()
+            self.rod_r_handles.pop(index).remove()
 
+        # 更新或创建新句柄
         for index in current:
-            start = topology.anchor_pos[topology.rod_anchors[index, 0]]
-            end = topology.anchor_pos[topology.rod_anchors[index, 1]]
-            midpoint = tuple(float(x) for x in (start + end) / 2.0)
-            direction = end - start
+            # 1. 基础几何计算
+            pos_a = topology.anchor_pos[topology.rod_anchors[index, 0]]
+            pos_b = topology.anchor_pos[topology.rod_anchors[index, 1]]
+            midpoint = (pos_a + pos_b) / 2.0
+            direction = pos_b - pos_a
             length = float(np.linalg.norm(direction))
             wxyz = tuple(float(x) for x in _quaternion_from_z_axis(direction))
             color = tuple(int(x) for x in _rod_color(workspace, index))
-
-            if index not in self.rod_visual_handles:
-                handle = self.server.scene.add_cylinder(
-                    f"/world/rod_visuals/e_{index}",
-                    radius=ROD_RADIUS,
-                    height=max(length, 1e-4),
+            
+            # 套筒长度：取初始/当前长度的 30% 或配置值
+            sleeve_ratio = robot.rod_group.sleeve_display_half_length_ratio
+            sleeve_len = length * sleeve_ratio * 2.0
+            
+            # 2. 渲染 Sleeve (中段套筒)
+            if index not in self.sleeve_handles:
+                self.sleeve_handles[index] = self.server.scene.add_cylinder(
+                    f"/world/rod_vis/{index}/sleeve",
+                    radius=ROD_RADIUS * 1.8, # 套筒略粗
+                    height=max(sleeve_len, 1e-4),
                     color=color,
-                    cast_shadow=False,
-                    receive_shadow=False,
-                    position=midpoint,
+                    position=tuple(float(x) for x in midpoint),
                     wxyz=wxyz,
                 )
-                self.rod_visual_handles[index] = handle
             else:
-                handle = self.rod_visual_handles[index]
-                handle.position = midpoint
-                handle.wxyz = wxyz
-                handle.height = max(length, 1e-4)
-                handle.color = color
+                h = self.sleeve_handles[index]
+                h.position = tuple(float(x) for x in midpoint)
+                h.wxyz = wxyz
+                h.height = max(sleeve_len, 1e-4)
+                h.color = color
+
+            # 3. 渲染 Rod Left (左杆: A -> Mid)
+            len_l = length / 2.0
+            pos_l = (pos_a + midpoint) / 2.0
+            if index not in self.rod_l_handles:
+                self.rod_l_handles[index] = self.server.scene.add_cylinder(
+                    f"/world/rod_vis/{index}/rod_l",
+                    radius=ROD_RADIUS,
+                    height=max(len_l, 1e-4),
+                    color=color,
+                    position=tuple(float(x) for x in pos_l),
+                    wxyz=wxyz,
+                )
+            else:
+                h = self.rod_l_handles[index]
+                h.position = tuple(float(x) for x in pos_l)
+                h.wxyz = wxyz
+                h.height = max(len_l, 1e-4)
+                h.color = color
+
+            # 4. 渲染 Rod Right (右杆: B -> Mid)
+            len_r = length / 2.0
+            pos_r = (pos_b + midpoint) / 2.0
+            if index not in self.rod_r_handles:
+                self.rod_r_handles[index] = self.server.scene.add_cylinder(
+                    f"/world/rod_vis/{index}/rod_r",
+                    radius=ROD_RADIUS,
+                    height=max(len_r, 1e-4),
+                    color=color,
+                    position=tuple(float(x) for x in pos_r),
+                    wxyz=wxyz,
+                )
+            else:
+                h = self.rod_r_handles[index]
+                h.position = tuple(float(x) for x in pos_r)
+                h.wxyz = wxyz
+                h.height = max(len_r, 1e-4)
+                h.color = color
 
     def _render_anchors(self, workspace: Workspace) -> None:
         """渲染锚点为主体球形。

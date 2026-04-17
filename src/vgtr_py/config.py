@@ -35,8 +35,12 @@ class SimulationConfig:
     gravity: bool = True
     # 默认最小长度基准（用于拓扑编辑时新增节点偏移和长度推导基线）。
     default_min_length: float = 1.2
-    # 地面摩擦速度衰减系数。
-    friction_factor: float = 0.8
+    # 地面摩擦速度衰减系数 (旧)，现在作为库仑摩擦系数 mu 使用。
+    friction_factor: float = 0.5
+    # 地面接触刚度 (N/m)。
+    ground_k: float = 100000.0
+    # 地面接触阻尼 (N·s/m)。
+    ground_d: float = 500.0
     # 动作周期倍率，num_steps_action = num_steps_action_multiplier / h。
     num_steps_action_multiplier: float = 2.0
 
@@ -106,11 +110,7 @@ def default_robot_config() -> RobotConfig:
     return RobotConfig()
 
 
-def default_simulation_config() -> SimulationConfig:
-    """返回默认仿真配置。"""
-    return default_robot_config().simulation
-
-_DEFAULT_SIM = default_simulation_config()
+_DEFAULT_SIM = SimulationConfig()
 
 
 class _ConfigFile(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -140,6 +140,8 @@ class _ConfigFile(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     gravity: int = int(_DEFAULT_SIM.gravity)
     defaultMinLength: float = _DEFAULT_SIM.default_min_length
     frictionFactor: float = _DEFAULT_SIM.friction_factor
+    groundK: float = _DEFAULT_SIM.ground_k
+    groundD: float = _DEFAULT_SIM.ground_d
     numStepsActionMultiplier: float = _DEFAULT_SIM.num_steps_action_multiplier
 
 
@@ -149,7 +151,7 @@ def default_config() -> SimulationConfig:
     Returns:
         默认 ``SimulationConfig`` 实例。
     """
-    return default_simulation_config()
+    return SimulationConfig()
 
 
 def load_config(path: str | Path) -> SimulationConfig:
@@ -179,5 +181,7 @@ def load_config(path: str | Path) -> SimulationConfig:
         gravity=bool(file_model.gravity),
         default_min_length=file_model.defaultMinLength,
         friction_factor=file_model.frictionFactor,
+        ground_k=file_model.groundK,
+        ground_d=file_model.groundD,
         num_steps_action_multiplier=file_model.numStepsActionMultiplier,
     )

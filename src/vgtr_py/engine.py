@@ -178,6 +178,40 @@ def update_forces(workspace: Workspace) -> None:
     if config.gravity:
         physics.forces[:, 2] -= topology.anchor_mass * config.gravity_factor
 
+    # --- 地面接触力 (Penalty Force + Coulomb Friction) ---
+    z_pos = topology.anchor_pos[:, 2]
+    v_z = physics.velocities[:, 2]
+    
+    # 仅处理 z < 0 的点
+    contact_mask = z_pos < 0
+    if np.any(contact_mask):
+        # 1. 法向力 (弹簧-阻尼模型)
+        # Fn = -k*z - d*vz
+        # 使用 max(0, ...) 确保地面只推不吸
+        f_spring = -config.ground_k * z_pos[contact_mask]
+        f_damping = -config.ground_d * v_z[contact_mask]
+        f_normal = np.maximum(0.0, f_spring + f_damping)
+        physics.forces[contact_mask, 2] += f_normal
+        
+        # 2. 库仑摩擦力 (基于正压力 Fn)
+        # 提取水平速度
+        v_xy = physics.velocities[contact_mask, :2]
+        v_speed_xy = np.linalg.norm(v_xy, axis=1)
+        
+        # 最大静摩擦/动摩擦力
+        f_fric_max = config.friction_factor * f_normal
+        
+        # 为了数值稳定，使用平滑的摩擦力模型：Ff = -normalize(v) * min(f_max, viscosity * speed)
+        # 这里的 100.0 是一个经验粘滞系数，用于在低速时平滑过渡
+        viscosity = 100.0
+        f_fric_magnitude = np.minimum(f_fric_max, viscosity * v_speed_xy)
+        
+        # 防止除以 0
+        safe_speed = np.where(v_speed_xy > 1e-6, v_speed_xy, 1.0)
+        f_fric_vec = -v_xy * (f_fric_magnitude / safe_speed)[:, None]
+        
+        physics.forces[contact_mask, :2] += f_fric_vec
+
 
 def step(workspace: Workspace, n: int = 1, *, scripting: bool = True) -> None:
     """推进物理模拟 N 步。"""
@@ -239,27 +273,26 @@ def _integrate(workspace: Workspace) -> None:
         physics.forces[movable] / safe_mass[movable, None]
     ) * config.h
 
-    touching_ground = topology.anchor_pos[:, 2] <= 0.0
-    ground_mask = movable & touching_ground
-    if np.any(ground_mask):
-        physics.velocities[ground_mask, 0] *= 1 - config.friction_factor
-        physics.velocities[ground_mask, 1] *= 1 - config.friction_factor
-
+    # 全局阻尼 (空气阻尼/关节阻尼)
     physics.velocities[movable] *= config.damping_ratio
 
+    # 速度限制 (防止发散)
     speed = np.linalg.norm(physics.velocities[movable], axis=1)
-    fast_mask = speed > 5.0
+    fast_mask = speed > 10.0  # 放宽限制到 10.0 m/s
     if np.any(fast_mask):
         limited = physics.velocities[movable]
         limited_indices = np.flatnonzero(fast_mask)
-        limited[limited_indices] *= (5.0 / speed[fast_mask])[:, None]
+        limited[limited_indices] *= (10.0 / speed[fast_mask])[:, None]
         physics.velocities[movable] = limited
 
+    # 位置更新
     topology.anchor_pos[movable] += physics.velocities[movable] * config.h
 
-    below_ground = topology.anchor_pos[:, 2] <= 0.0
+    # 地面硬限制 (防止数值漂移导致的穿透)
+    below_ground = topology.anchor_pos[:, 2] < 0.0
     if np.any(below_ground):
-        physics.velocities[below_ground, 2] *= -1.0
+        # 垂直速度设为 0 (能量由 ground_d 吸收)，位置强制回弹至 0
+        physics.velocities[below_ground, 2] = 0.0
         topology.anchor_pos[below_ground, 2] = 0.0
 
 
