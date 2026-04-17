@@ -110,34 +110,34 @@ def clear_workspace_selection(workspace: Workspace) -> None:
 
 
 def fix_selected(workspace: Workspace, history: WorkspaceHistory, fixed: bool) -> bool:
-    """批量固定或解固定当前选中 anchor。"""
+    """批量固定或解固定当前选中锚点。"""
     return apply_edit(workspace, history, lambda: set_selected_fixed(workspace, fixed))
 
 
 def add_joint_from_selection(workspace: Workspace, history: WorkspaceHistory) -> bool:
-    """基于当前选择状态添加一个新 anchor。"""
+    """基于当前选择状态添加一个新锚点。"""
     selected = np.flatnonzero(workspace.ui.anchor_status == 2)
     source = int(selected[0]) if selected.size == 1 else None
     return apply_edit(workspace, history, lambda: add_joint(workspace, source_index=source))
 
 
 def add_joint_from_anchor(workspace: Workspace, history: WorkspaceHistory, index: int) -> bool:
-    """从指定 anchor 延伸添加一个新 anchor。"""
+    """从指定锚点延伸添加一个新锚点。"""
     return apply_edit(workspace, history, lambda: add_joint(workspace, source_index=index))
 
 
 def connect_selected_anchors(workspace: Workspace, history: WorkspaceHistory) -> bool:
-    """连接当前选中的 anchors。"""
+    """连接当前选中的锚点。"""
     return apply_edit(workspace, history, lambda: connect_anchors(workspace))
 
 
 def remove_selected_anchors_command(workspace: Workspace, history: WorkspaceHistory) -> bool:
-    """删除当前选中 anchors。"""
+    """删除当前选中锚点。"""
     return apply_edit(workspace, history, lambda: remove_selected_vertices(workspace))
 
 
-def remove_selected_edges_command(workspace: Workspace, history: WorkspaceHistory) -> bool:
-    """删除当前选中的 rod groups（边）。"""
+def remove_selected_rod_groups_command(workspace: Workspace, history: WorkspaceHistory) -> bool:
+    """删除当前选中的杆组（边）。"""
     return apply_edit(workspace, history, lambda: remove_selected_edges(workspace))
 
 
@@ -147,11 +147,7 @@ def center_model_command(workspace: Workspace, history: WorkspaceHistory) -> boo
 
 
 def set_selected_anchor_position(workspace: Workspace, index: int, position: np.ndarray) -> None:
-    """更新选中 anchor 位置。
-
-    注意：此函数不经过 apply_edit，适用于拖拽等需要连续更新位置的场景；
-    拖拽结束时应调用 complete_drag_edit 将起始快照补入历史。
-    """
+    """更新选中锚点位置。"""
     set_selected_vertices_position(workspace, index, position)
 
 
@@ -161,7 +157,7 @@ def assign_selected_rod_groups_control_group(
     *,
     control_group_index: int,
 ) -> bool:
-    """将当前选中的 rod_group 分配到指定 control_group。"""
+    """将当前选中的杆组分配到指定控制组。"""
     if control_group_index < 0 or control_group_index >= workspace.script.num_channels:
         raise ValueError(f"control_group_index out of range: {control_group_index}")
 
@@ -175,7 +171,7 @@ def assign_selected_rod_groups_control_group(
 
 
 def select_anchor_by_mode(workspace: Workspace, *, index: int, mode: str) -> bool:
-    """根据交互模式处理 anchor 点击。"""
+    """根据交互模式处理锚点点击。"""
     if mode == "replace":
         select_anchor(workspace, index, additive=False)
         return False
@@ -185,8 +181,8 @@ def select_anchor_by_mode(workspace: Workspace, *, index: int, mode: str) -> boo
     raise ValueError(f"unsupported anchor click mode: {mode}")
 
 
-def select_edge_by_mode(workspace: Workspace, *, index: int, mode: str) -> bool:
-    """根据交互模式处理 rod_group 点击。"""
+def select_rod_group_by_mode(workspace: Workspace, *, index: int, mode: str) -> bool:
+    """根据交互模式处理杆组点击。"""
     if mode == "toggle":
         toggle_rod_group_selection(workspace, index)
         return False

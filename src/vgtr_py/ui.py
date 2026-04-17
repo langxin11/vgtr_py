@@ -15,22 +15,23 @@ import numpy as np
 import viser
 
 from .commands import (
+    add_joint_from_anchor,
     add_joint_from_selection,
-    add_joint_from_vertex,
+    assign_selected_rod_groups_control_group,
     center_model_command,
     clear_workspace_history,
     clear_workspace_selection,
     complete_drag_edit,
-    connect_selected_vertices,
+    connect_selected_anchors,
     fix_selected,
     load_workspace_from_paths,
     redo,
-    remove_selected_edges_command,
-    remove_selected_vertices_command,
+    remove_selected_anchors_command,
+    remove_selected_rod_groups_command,
     save_workspace_to_path,
-    select_edge_by_mode,
-    select_vertex_by_mode,
-    set_selected_vertex_position,
+    select_anchor_by_mode,
+    select_rod_group_by_mode,
+    set_selected_anchor_position,
     undo,
 )
 from .engine import step
@@ -45,7 +46,7 @@ LOGGER = logging.getLogger(__name__)
 class VgtrUiApp:
     """VGTR 编辑与仿真界面应用入口类。
 
-    该类通过集成 ViserServer 和后端 Workspace，
+    该类通过集成 Viser Server 和后端 Workspace，
     提供图形界面操作、物理渲染控制和多线程步骤循环的胶水逻辑。
 
     Attributes:
@@ -69,8 +70,8 @@ class VgtrUiApp:
     _simulation_thread: threading.Thread | None = None
     _simulate_checkbox: viser.GuiCheckboxHandle | None = None
     _editing_checkbox: viser.GuiCheckboxHandle | None = None
-    _move_joint_checkbox: viser.GuiCheckboxHandle | None = None
-    _show_channel_checkbox: viser.GuiCheckboxHandle | None = None
+    _move_anchor_checkbox: viser.GuiCheckboxHandle | None = None
+    _show_control_group_checkbox: viser.GuiCheckboxHandle | None = None
     _step_number: viser.GuiNumberHandle[int] | None = None
     _status_markdown: viser.GuiMarkdownHandle | None = None
     _config_path_text: viser.GuiTextHandle | None = None
@@ -120,20 +121,17 @@ class VgtrUiApp:
         if editing and getattr(self, "_select_mode", None) is not None:
             self._select_mode.value = "toggle"
         if not preserve_move_state:
-            self.workspace.ui.moving_joint = False
+            self.workspace.ui.moving_anchor = False
             self.workspace.ui.moving_body = False
-            if self._move_joint_checkbox is not None:
-                self._move_joint_checkbox.value = False
+            if self._move_anchor_checkbox is not None:
+                self._move_anchor_checkbox.value = False
         self._is_transform_dragging = False
         self._drag_snapshot = None
         if self._edit_tools_folder is not None:
             self._edit_tools_folder.visible = editing
 
     def _build_gui(self) -> None:
-        """初始化 Viser 后台与前端控制面板，包含各类复选框、按钮和操作选项组与它们的回调函数。
-
-        负责“工作区”、“网格选择”、“拓扑建立”以及“步进操作”UI的定义及交互挂载。
-        """
+        """初始化 Viser 后台与前端控制面板，挂载各类控件及其回调。"""
         with self.server.gui.add_folder("Workspace"):
             config_text = self.server.gui.add_text(
                 "Config Path",
@@ -154,11 +152,11 @@ class VgtrUiApp:
             self._file_status_markdown = self.server.gui.add_markdown("Ready.")
             simulate = self.server.gui.add_checkbox("Simulate", self.workspace.ui.simulate)
             editing = self.server.gui.add_checkbox("Editing", self.workspace.ui.editing)
-            show_channel = self.server.gui.add_checkbox(
-                "Show Control Group", self.workspace.ui.show_channel
+            show_control_group = self.server.gui.add_checkbox(
+                "Show Control Group", self.workspace.ui.show_control_group
             )
             simulation_rate = self.server.gui.add_number(
-                "Simulation Steps / Second",
+                "Steps/Second",
                 int(self.simulation_steps_per_second),
                 min=1,
                 max=5000,
@@ -175,17 +173,21 @@ class VgtrUiApp:
             "Editing Tools", visible=self.workspace.ui.editing
         )
         with edit_tools_folder:
-            move_joint = self.server.gui.add_checkbox("Move Anchor", self.workspace.ui.moving_joint)
+            move_anchor = self.server.gui.add_checkbox("Move Anchor", self.workspace.ui.moving_anchor)
             with self.server.gui.add_folder("Selection"):
                 clear_button = self.server.gui.add_button("Clear Selection")
                 fix_button = self.server.gui.add_button("Fix Selected")
                 unfix_button = self.server.gui.add_button("Unfix Selected")
+                assign_cg_folder = self.server.gui.add_folder("Control Group Assignment")
+                with assign_cg_folder:
+                    cg_index = self.server.gui.add_number("Target CG", 0, min=0, max=100, step=1)
+                    assign_cg_button = self.server.gui.add_button("Assign to Selected Rods")
 
             with self.server.gui.add_folder("Topology"):
-                add_joint_button = self.server.gui.add_button("Add Anchor")
+                add_anchor_button = self.server.gui.add_button("Add Anchor")
                 connect_button = self.server.gui.add_button("Add Rod Group")
-                remove_edge_button = self.server.gui.add_button("Remove Selected Rod Groups")
-                remove_vertex_button = self.server.gui.add_button("Remove Selected Anchors")
+                remove_rod_button = self.server.gui.add_button("Remove Selected Rod Groups")
+                remove_anchor_button = self.server.gui.add_button("Remove Selected Anchors")
                 center_button = self.server.gui.add_button("Center Model")
                 select_mode = self.server.gui.add_dropdown(
                     "Click Mode",
@@ -238,24 +240,24 @@ class VgtrUiApp:
                 self._set_editing_state(editing.value, restore_pose=editing.value)
                 self.refresh()
 
-        @move_joint.on_update
+        @move_anchor.on_update
         def _(_event: viser.GuiEvent[viser.GuiCheckboxHandle]) -> None:
             with self._lock:
-                self.workspace.ui.moving_joint = move_joint.value and self.workspace.ui.editing
-                if move_joint.value and not self.workspace.ui.editing:
+                self.workspace.ui.moving_anchor = move_anchor.value and self.workspace.ui.editing
+                if move_anchor.value and not self.workspace.ui.editing:
                     self._set_editing_state(
                         True,
                         restore_pose=True,
                         preserve_move_state=True,
                     )
-                    self.workspace.ui.moving_joint = True
+                    self.workspace.ui.moving_anchor = True
                     editing.value = True
                 self.refresh()
 
-        @show_channel.on_update
+        @show_control_group.on_update
         def _(_event: viser.GuiEvent[viser.GuiCheckboxHandle]) -> None:
             with self._lock:
-                self.workspace.ui.show_channel = show_channel.value
+                self.workspace.ui.show_control_group = show_control_group.value
                 self.refresh()
 
         @simulation_rate.on_update
@@ -290,15 +292,25 @@ class VgtrUiApp:
                 fix_selected(self.workspace, self.history, False)
                 self.refresh()
 
-        @add_joint_button.on_click
+        @assign_cg_button.on_click
         def _(_event: viser.GuiEvent[viser.GuiButtonHandle]) -> None:
             with self._lock:
-                selected = np.flatnonzero(self.workspace.ui.vertex_status == 2).tolist()
-                before_edges = int(self.workspace.topology.edges.shape[0])
+                changed = assign_selected_rod_groups_control_group(
+                    self.workspace, self.history, control_group_index=int(cg_index.value)
+                )
+                if changed:
+                    self._set_file_status(f"Assigned rods to CG {int(cg_index.value)}", log_terminal=True)
+                self.refresh()
+
+        @add_anchor_button.on_click
+        def _(_event: viser.GuiEvent[viser.GuiButtonHandle]) -> None:
+            with self._lock:
+                selected = np.flatnonzero(self.workspace.ui.anchor_status == 2).tolist()
+                before_rods = int(self.workspace.topology.rod_anchors.shape[0])
                 changed = add_joint_from_selection(self.workspace, self.history)
                 if changed:
-                    new_index = int(self.workspace.topology.vertices.shape[0] - 1)
-                    auto_connected = int(self.workspace.topology.edges.shape[0]) > before_edges
+                    new_index = int(self.workspace.topology.anchor_pos.shape[0] - 1)
+                    auto_connected = int(self.workspace.topology.rod_anchors.shape[0]) > before_rods
                     if len(selected) == 1:
                         self._set_file_status(
                             f"Added anchor {new_index} from selected anchor {selected[0]}."
@@ -307,8 +319,7 @@ class VgtrUiApp:
                         )
                     else:
                         self._set_file_status(
-                            f"Added anchor {new_index} from centroid of selection {selected}."
-                            ,
+                            f"Added anchor {new_index} from centroid of selection {selected}.",
                             log_terminal=True,
                         )
                 else:
@@ -318,11 +329,11 @@ class VgtrUiApp:
         @connect_button.on_click
         def _(_event: viser.GuiEvent[viser.GuiButtonHandle]) -> None:
             with self._lock:
-                selected_count = int(np.flatnonzero(self.workspace.ui.vertex_status == 2).size)
-                edge_count_before = int(self.workspace.topology.edges.shape[0])
-                changed = connect_selected_vertices(self.workspace, self.history)
-                edge_count_after = int(self.workspace.topology.edges.shape[0])
-                added_count = edge_count_after - edge_count_before
+                selected_count = int(np.flatnonzero(self.workspace.ui.anchor_status == 2).size)
+                rod_count_before = int(self.workspace.topology.rod_anchors.shape[0])
+                changed = connect_selected_anchors(self.workspace, self.history)
+                rod_count_after = int(self.workspace.topology.rod_anchors.shape[0])
+                added_count = rod_count_after - rod_count_before
                 if not changed:
                     if selected_count < 2:
                         self._set_file_status(
@@ -339,16 +350,16 @@ class VgtrUiApp:
                     self._set_file_status(f"Added {added_count} rod group(s).", log_terminal=True)
                 self.refresh()
 
-        @remove_vertex_button.on_click
+        @remove_anchor_button.on_click
         def _(_event: viser.GuiEvent[viser.GuiButtonHandle]) -> None:
             with self._lock:
-                remove_selected_vertices_command(self.workspace, self.history)
+                remove_selected_anchors_command(self.workspace, self.history)
                 self.refresh()
 
-        @remove_edge_button.on_click
+        @remove_rod_button.on_click
         def _(_event: viser.GuiEvent[viser.GuiButtonHandle]) -> None:
             with self._lock:
-                remove_selected_edges_command(self.workspace, self.history)
+                remove_selected_rod_groups_command(self.workspace, self.history)
                 self.refresh()
 
         @center_button.on_click
@@ -382,26 +393,22 @@ class VgtrUiApp:
         self._edit_tools_folder = edit_tools_folder
         self._simulate_checkbox = simulate
         self._editing_checkbox = editing
-        self._move_joint_checkbox = move_joint
-        self._show_channel_checkbox = show_channel
+        self._move_anchor_checkbox = move_anchor
+        self._show_control_group_checkbox = show_control_group
         self._step_number = step_count
-        self.renderer.on_vertex_click = self._on_vertex_click
-        self.renderer.on_edge_click = self._on_edge_click
+        self.renderer.on_anchor_click = self._on_anchor_click
+        self.renderer.on_rod_group_click = self._on_rod_group_click
 
-    def _on_vertex_click(self, index: int) -> None:
-        """处理顶点点击事件。
-
-        Args:
-            index: 被点击的顶点索引。
-        """
+    def _on_anchor_click(self, index: int) -> None:
+        """处理锚点点击事件。"""
         with self._lock:
             mode = self._select_mode.value
             if mode == "add-child":
-                before_edges = int(self.workspace.topology.edges.shape[0])
-                added = add_joint_from_vertex(self.workspace, self.history, index)
+                before_rods = int(self.workspace.topology.rod_anchors.shape[0])
+                added = add_joint_from_anchor(self.workspace, self.history, index)
                 if added:
-                    new_index = int(self.workspace.topology.vertices.shape[0] - 1)
-                    auto_connected = int(self.workspace.topology.edges.shape[0]) > before_edges
+                    new_index = int(self.workspace.topology.anchor_pos.shape[0] - 1)
+                    auto_connected = int(self.workspace.topology.rod_anchors.shape[0]) > before_rods
                     self._set_file_status(
                         f"Added anchor {new_index} from anchor {index}."
                         + (" Auto-connected with a new rod group." if auto_connected else ""),
@@ -409,20 +416,15 @@ class VgtrUiApp:
                     )
                 self.refresh()
                 return
-            select_vertex_by_mode(self.workspace, index=index, mode=mode)
-            selected = np.flatnonzero(self.workspace.ui.vertex_status == 2).tolist()
+            select_anchor_by_mode(self.workspace, index=index, mode=mode)
+            selected = np.flatnonzero(self.workspace.ui.anchor_status == 2).tolist()
             self._set_file_status(f"Selected anchors: {selected} (mode: {mode})")
             self.refresh()
 
     def _on_transform_update(self, index: int, position: np.ndarray) -> None:
-        """接收变换控制器发出的位置变动事件并写入底层的绝对坐标中去。
-
-        Args:
-            index: 顶点索引。
-            position: 目标坐标。
-        """
+        """接收变换控制器发出的位置变动事件。"""
         with self._lock:
-            set_selected_vertex_position(self.workspace, index, position)
+            set_selected_anchor_position(self.workspace, index, position)
             self.refresh()
 
     def _on_transform_drag_start(self) -> None:
@@ -438,12 +440,12 @@ class VgtrUiApp:
             complete_drag_edit(self.workspace, self.history, self._drag_snapshot)
             self._drag_snapshot = None
 
-    def _on_edge_click(self, index: int) -> None:
-        """处理边点击后的选择逻辑。"""
+    def _on_rod_group_click(self, index: int) -> None:
+        """处理杆组点击后的选择逻辑。"""
         with self._lock:
             mode = self._select_mode.value
-            select_edge_by_mode(self.workspace, index=index, mode=mode)
-            selected = np.flatnonzero(self.workspace.ui.edge_status == 2).tolist()
+            select_rod_group_by_mode(self.workspace, index=index, mode=mode)
+            selected = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
             self._set_file_status(f"Selected rod groups: {selected} (mode: {mode})")
             self.refresh()
 
@@ -470,12 +472,7 @@ class VgtrUiApp:
             time.sleep(1.0 / self.render_hz)
 
     def _load_workspace(self, *, config_path: Path, example_path: Path) -> None:
-        """按给定路径加载工作区并同步 GUI。
-
-        Args:
-            config_path: 配置文件路径。
-            example_path: 示例文件路径。
-        """
+        """按给定路径加载工作区并同步 GUI。"""
         self.workspace = load_workspace_from_paths(
             config_path=config_path,
             example_path=example_path,
@@ -494,11 +491,7 @@ class VgtrUiApp:
         self.refresh()
 
     def _save_workspace(self, path: Path) -> None:
-        """将当前工作区保存到对应格式的`JSON`文件。
-
-        Args:
-            path: 输出文件路径。
-        """
+        """将当前工作区保存到对应格式的`JSON`文件。"""
         save_workspace_to_path(self.workspace, path)
 
     def _sync_gui_from_workspace(self) -> None:
@@ -507,10 +500,10 @@ class VgtrUiApp:
             self._simulate_checkbox.value = self.workspace.ui.simulate
         if self._editing_checkbox is not None:
             self._editing_checkbox.value = self.workspace.ui.editing
-        if self._move_joint_checkbox is not None:
-            self._move_joint_checkbox.value = self.workspace.ui.moving_joint
-        if self._show_channel_checkbox is not None:
-            self._show_channel_checkbox.value = self.workspace.ui.show_channel
+        if self._move_anchor_checkbox is not None:
+            self._move_anchor_checkbox.value = self.workspace.ui.moving_anchor
+        if self._show_control_group_checkbox is not None:
+            self._show_control_group_checkbox.value = self.workspace.ui.show_control_group
         if self._edit_tools_folder is not None:
             self._edit_tools_folder.visible = self.workspace.ui.editing
 
@@ -546,53 +539,43 @@ class VgtrUiApp:
         if not self.workspace.ui.editing:
             return True
         return self._is_transform_dragging and (
-            self.workspace.ui.moving_joint or self.workspace.ui.moving_body
+            self.workspace.ui.moving_anchor or self.workspace.ui.moving_body
         )
 
     def _update_status(self) -> None:
         """更新状态面板文本。"""
         if self._status_markdown is None:
             return
-        selected_vertex_indices = np.flatnonzero(self.workspace.ui.vertex_status == 2).tolist()
-        selected_edge_indices = np.flatnonzero(self.workspace.ui.edge_status == 2).tolist()
-        selected_vertices = len(selected_vertex_indices)
-        selected_edges = len(selected_edge_indices)
+        selected_anchor_indices = np.flatnonzero(self.workspace.ui.anchor_status == 2).tolist()
+        selected_rod_indices = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
+        selected_anchors = len(selected_anchor_indices)
+        selected_rods = len(selected_rod_indices)
         click_mode = self._select_mode.value if hasattr(self, "_select_mode") else "unknown"
         self._status_markdown.content = (
-            f"**Anchors:** {self.workspace.topology.vertices.shape[0]}  \n"
-            f"**Rod Groups:** {self.workspace.topology.edges.shape[0]}  \n"
+            f"**Anchors:** {self.workspace.topology.anchor_pos.shape[0]}  \n"
+            f"**Rod Groups:** {self.workspace.topology.rod_anchors.shape[0]}  \n"
             f"**Control Groups:** {self.workspace.script.num_channels}  \n"
             f"**Steps:** {self.workspace.physics.num_steps}  \n"
             f"**Simulation Rate:** {int(self.simulation_steps_per_second)} steps/s  \n"
             f"**Render Rate:** {int(self.render_hz)} Hz  \n"
             f"**Click Mode:** {click_mode}  \n"
-            f"**Selected Anchors:** {selected_vertices}  \n"
-            f"**Selected Anchor Indices:** {selected_vertex_indices}  \n"
-            f"**Selected Rod Groups:** {selected_edges}  \n"
-            f"**Selected Rod Group Indices:** {selected_edge_indices}"
+            f"**Selected Anchors:** {selected_anchors}  \n"
+            f"**Selected Anchor Indices:** {selected_anchor_indices}  \n"
+            f"**Selected Rod Groups:** {selected_rods}  \n"
+            f"**Selected Rod Group Indices:** {selected_rod_indices}"
         )
 
 
 def create_app(
     *,
-    config_path: str | Path,
+    config_path: str | Path | None,
     example_path: str | Path,
     host: str = "0.0.0.0",
     port: int = 8080,
 ) -> VgtrUiApp:
-    """基于配置和示例文件创建 ``VgtrUiApp``。
-
-    Args:
-        config_path: 配置文件路径。
-        example_path: 示例文件路径。
-        host: 服务监听地址。
-        port: 服务端口号。
-
-    Returns:
-        已初始化的 ``VgtrUiApp`` 实例。
-    """
+    """基于配置和示例文件创建 ``VgtrUiApp``。"""
     workspace = load_workspace_from_paths(
-        config_path=Path(config_path),
+        config_path=Path(config_path) if config_path is not None else None,
         example_path=Path(example_path),
     )
     server = viser.ViserServer(host=host, port=port)
@@ -601,6 +584,6 @@ def create_app(
         server=server,
         workspace=workspace,
         renderer=renderer,
-        current_config_path=Path(config_path),
+        current_config_path=Path(config_path) if config_path is not None else None,
         current_example_path=Path(example_path),
     )

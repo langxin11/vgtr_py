@@ -8,32 +8,37 @@ from .engine import precompute
 from .workspace import Workspace
 
 
-def selected_anchor_indices(workspace: Workspace) -> np.ndarray:
-    """返回当前选中的 anchor 索引。
+def selected_vertex_indices(workspace: Workspace) -> np.ndarray:
+    """返回当前选中的顶点索引。
 
     Args:
         workspace: 当前工作区。
 
     Returns:
-        选中 anchor 索引数组。
+        选中顶点索引数组。
     """
     return np.flatnonzero(workspace.ui.anchor_status == 2)
 
 
-def selected_rod_group_indices(workspace: Workspace) -> np.ndarray:
-    """返回当前选中的 rod_group 索引。
+def selected_edge_indices(workspace: Workspace) -> np.ndarray:
+    """返回当前选中的边索引。
 
     Args:
         workspace: 当前工作区。
 
     Returns:
-        选中 rod_group 索引数组。
+        选中边索引数组。
     """
     return np.flatnonzero(workspace.ui.rod_group_status == 2)
 
 
+# Aliases for internal compatibility
+selected_anchor_indices = selected_vertex_indices
+selected_rod_group_indices = selected_edge_indices
+
+
 def clear_selection(workspace: Workspace) -> None:
-    """清空 anchor、rod_group 和面的选择状态。
+    """清空顶点、边和面的选择状态。
 
     Args:
         workspace: 当前工作区。
@@ -43,12 +48,12 @@ def clear_selection(workspace: Workspace) -> None:
     workspace.ui.face_status.fill(0)
 
 
-def select_anchor(workspace: Workspace, index: int, *, additive: bool = False) -> None:
-    """选中指定 anchor；非增量模式会先清空已有选择。
+def select_vertex(workspace: Workspace, index: int, *, additive: bool = False) -> None:
+    """选中指定顶点；非增量模式会先清空已有选择。
 
     Args:
         workspace: 当前工作区。
-        index: anchor 索引。
+        index: 顶点索引。
         additive: 是否保留已有选择。
     """
     if not additive:
@@ -56,23 +61,31 @@ def select_anchor(workspace: Workspace, index: int, *, additive: bool = False) -
     workspace.ui.anchor_status[index] = 2
 
 
-def toggle_anchor_selection(workspace: Workspace, index: int) -> None:
-    """切换指定 anchor 的选中状态。
+# Alias for internal compatibility
+select_anchor = select_vertex
+
+
+def toggle_vertex_selection(workspace: Workspace, index: int) -> None:
+    """切换指定顶点的选中状态。
 
     Args:
         workspace: 当前工作区。
-        index: anchor 索引。
+        index: 顶点索引。
     """
     current = workspace.ui.anchor_status[index]
     workspace.ui.anchor_status[index] = 0 if current == 2 else 2
 
 
-def select_rod_group(workspace: Workspace, index: int, *, additive: bool = False) -> None:
-    """选中指定 rod_group；非增量模式会先清空已有选择。
+# Alias for internal compatibility
+toggle_anchor_selection = toggle_vertex_selection
+
+
+def select_edge(workspace: Workspace, index: int, *, additive: bool = False) -> None:
+    """选中指定边；非增量模式会先清空已有选择。
 
     Args:
         workspace: 当前工作区。
-        index: rod_group 索引。
+        index: 边索引。
         additive: 是否保留已有选择。
     """
     if not additive:
@@ -80,15 +93,23 @@ def select_rod_group(workspace: Workspace, index: int, *, additive: bool = False
     workspace.ui.rod_group_status[index] = 2
 
 
-def toggle_rod_group_selection(workspace: Workspace, index: int) -> None:
-    """切换指定 rod_group 的选中状态。
+# Alias for internal compatibility
+select_rod_group = select_edge
+
+
+def toggle_edge_selection(workspace: Workspace, index: int) -> None:
+    """切换指定边的选中状态。
 
     Args:
         workspace: 当前工作区。
-        index: rod_group 索引。
+        index: 边索引。
     """
     current = workspace.ui.rod_group_status[index]
     workspace.ui.rod_group_status[index] = 0 if current == 2 else 2
+
+
+# Alias for internal compatibility
+toggle_rod_group_selection = toggle_edge_selection
 
 
 def add_joint(workspace: Workspace, source_index: int | None = None) -> int:
