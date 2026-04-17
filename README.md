@@ -60,7 +60,9 @@ The project employs an isolation strategy of "Graph Theory Internals vs. Robotic
 
 ## 🎬 Demo
 
-<video src="https://github.com/langxin11/vgtr_py/releases/download/demo-videos/transformer-rocket-II-demo.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/47623025-1312-4210-b67f-36d667008efc" controls autoplay loop muted playsinline width="100%"></video>
+
+If the embedded player does not render on GitHub, open the [demo video](https://github.com/user-attachments/assets/47623025-1312-4210-b67f-36d667008efc) directly.
 
 ## 🚀 Quickstart
 

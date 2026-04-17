@@ -58,6 +58,12 @@
 - [x] 核心模块已有单元测试并当前全部通过
 - [ ] 交互式动作脚本序列编辑器 (Action Sequence Editor)
 
+## 🎬 演示
+
+<video src="https://github.com/user-attachments/assets/47623025-1312-4210-b67f-36d667008efc" controls autoplay loop muted playsinline width="100%"></video>
+
+若 GitHub 页面中未显示内嵌播放器，可直接打开[演示视频](https://github.com/user-attachments/assets/47623025-1312-4210-b67f-36d667008efc)。
+
 ## 🚀 快速开始
 
 环境要求：**Python 3.12+**。推荐使用 `uv` 进行开发。
