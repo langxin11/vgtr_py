@@ -96,4 +96,4 @@ def test_plan_prints_implementation_plan_path() -> None:
 
     # Assert: 无报错退出，且能在输出文本的末尾找到对应文档结构名称
     assert result.exit_code == 0
-    assert result.stdout.strip().endswith("docs/IMPLEMENTATION_PLAN.md")
+    assert result.stdout.strip().endswith("docs/implementation-plan.md")

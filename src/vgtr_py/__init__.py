@@ -31,7 +31,7 @@ EXAMPLE_OPTION = typer.Option(
 def plan() -> None:
     """Print the location of the implementation plan."""
     project_root = Path(__file__).resolve().parents[2]
-    typer.echo(project_root / "docs" / "IMPLEMENTATION_PLAN.md")
+    typer.echo(project_root / "docs" / "implementation-plan.md")
 
 
 @cli.command()
