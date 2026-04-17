@@ -19,6 +19,7 @@ vgtr-py = "vgtr_py:main"
 
 [dependency-groups]
 dev = [
+    "myst-parser>=5.0.0",
     "pydata-sphinx-theme>=0.17.0",
     "pytest>=8.0.0",
     "ruff>=0.8.0",

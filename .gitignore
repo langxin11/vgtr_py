@@ -10,3 +10,6 @@ wheels/
 .venv
 # Visual Studio Code settings
 .vscode
+
+docs/_build/
+docs/generated/
