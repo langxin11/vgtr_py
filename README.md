@@ -1,7 +1,7 @@
 # ⚙️ vgtr-py
 
 <p align="center">
-  <strong>Variable-Geometry Truss Robot (VGTR) Editor & Simulator</strong>
+  <strong>Variable-Geometry Truss Robot (VGTR) Interactive Design & Preview Simulator</strong>
 </p>
 
 <p align="center">
@@ -11,78 +11,79 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Active%20Development-orange" alt="Status: Active Development">
   <img src="https://img.shields.io/badge/Python-3.12%2B-blue.svg" alt="Python 3.12+">
-  <img src="https://img.shields.io/badge/Code%20Style-Google-blueviolet" alt="Code Style: Google">
+  <img src="https://img.shields.io/badge/Architecture-Boundary%20Isolation-green" alt="Architecture: Boundary Isolation">
   <img src="https://img.shields.io/badge/Tests-Passing-success" alt="Tests">
 </p>
 
 ---
 
-This repository serves as the Python-first editor and lightweight preview simulator for **Variable-Geometry Truss Robots (VGTR)**, directly inspired by the original [PneuMesh](https://github.com/riceroll/pneumesh) project.
+`vgtr-py` is a Python-based editor and preview simulator for **Variable-Geometry Truss Robots (VGTR)**.
 
-It reimagines PneuMesh's strengths (such as its simplified spring-network dynamics, color-group selections, and lightweight structures) into a new architectural paradigm that aligns with VGTR anchors, rod groups, and execution controls.
+Building upon the prototypes of [PneuMesh](https://github.com/riceroll/pneumesh), it introduces a complete architectural migration tailored for VGTR semantics. It uses **Anchors**, **Rod Groups**, and **Control Groups** to describe robot structures and provides real-time behavior previews driven by physical forces.
 
-## 🎯 Goals & Scope
+## 🎯 Core Features
 
-This tool retains the robust features of its predecessor:
+- 🏗️ **Lightweight Topology Editing**: Interactions optimized for truss structures, including anchor extension, batch connection, and fixed/movable state toggling.
+- 🚀 **Force-Driven Dynamics Simulation**:
+    - Real-time force solving based on **Explicit Euler** integration.
+    - **Ground Model**: Penalty-based spring-damper feedback for robust ground contact.
+    - **Coulomb Friction**: Smoothed Coulomb friction model constrained by normal force, enabling realistic crawling and bracing behaviors.
+- 🎨 **Mechanical Prismatic Rendering**: A three-part rod rendering system (Sleeve + Dual internal rods) that visually represents the sliding motion of prismatic joints.
+- 🎛️ **Real-time Parameter Tuning**:
+    - **Live Tuning**: Dynamically adjust stiffness, damping, and friction coefficients during simulation.
+    - **Dynamic Actuation**: Automatically generates UI sliders for control groups, supporting both manual override and script-driven execution.
 
-- 🏗️ **Lightweight 3D structure editing workflow**
-- 🚀 **Rapid, simplified spring-network dynamics** over rigid-body solvers
-- 🎛️ **Control script models** driven by color groups
-- 🔄 **Universal JSON-based** workspace exchange protocol
+## 🏛️ Architecture: Boundary Isolation Strategy
 
-> [!WARNING]
-> **Not for High-Fidelity:** In its v1 form, this is meant as an interactive design and ideation scaffold. It is not intended to replace highly accurate robotic simulation engines like MuJoCo or Isaac Gym.
+The project employs an isolation strategy of "Graph Theory Internals vs. Robotics Externals" to ensure long-term maintainability:
 
-## 🏛️ Architecture & Current Status
+- **Internal**: The low-level algorithms (`topology.py`) use `vertex` and `edge` concepts to keep mathematical logic concise.
+- **External**: High-level business logic and UI (`ui.py`) strictly use `anchor`, `rod_group`, and `control_group` semantics.
+- **Translation**: The command layer (`commands.py`) handles terminology mapping and manages Snapshot-based **Undo/Redo** history.
 
-The core python packages (`src/vgtr_py/`) have been structurally migrated and functionally fleshed out, with strict adherence to the Google Python Docstring Guide (Chinese).
+## 🛠️ Tech Stack
 
-- 🗄️ **`workspace.py`, `schema.py`, `topology.py`**: Workspaces define the state-centric hub, graph topology, and Msgspec JSON I/O hooks.
-- ⚙️ **`engine.py`, `kinematics.py`**: The numerical core driving Euler integration and simulated physics behaviors.
-- 🎨 **`rendering.py`**: Maps complex internal topologies into high-quality Viser representation.
-- 💻 **`ui.py`, `commands.py`**: Provides the GUI layers and Typer-backed CLI commands to drive it all.
-- 🕒 **`history.py`**: Implements a fully Snapshot-based undo/redo mechanism.
+- **Numerical Core**: `numpy`
+- **3D Interaction & GUI**: `viser`
+- **Data Serialization**: `msgspec` (utilizing `sites` + `rod_groups` disk format)
+- **CLI Framework**: `typer`
+- **Quality Assurance**: `pytest` & `ruff`
 
-## 🛠️ Proposed Stack
+## 🗺️ Roadmap Status
 
-- **`numpy`** for the core numerical simulation arrays
-- **`viser`** for browser-based 3D visualization and responsive GUI
-- **`msgspec`** for rigorous schema validation and high-performance JSON I/O
-- **`typer`** for unified CLI commands
-- **`pytest`** and **`ruff`** for unit testing and code quality
+- [x] Refactor to business semantics based on `anchor/rod_group`
+- [x] Implement Penalty-based ground force and Coulomb friction models
+- [x] Develop three-part mechanical prismatic joint rendering
+- [x] Establish a global Snapshot-based history system
+- [x] Comprehensive unit tests for core modules (all currently passing)
+- [ ] Interactive Action Sequence Editor (Script Grid Editor)
 
-## 🗺️ Milestones
+## 🎬 Demo
 
-The current trajectory involves the following steps:
-
-- [x] Schema + Config compatibility with original PneuMesh legacy structures
-- [x] Functional NumPy-based simulation kernel implementation
-- [x] Interactive Viser 3D Viewer integration (Drag, Select, Connect, Delete)
-- [x] Snapshot-based Undo/Redo history tracking system
-- [x] Core internal standardization (Google Style Docstrings & Test passing)
-- [ ] Full Script Grid Editor integration (Timeline-based control patterns)
+<video src="https://github.com/langxin11/vgtr_py/releases/download/demo-videos/transformer-rocket-II-demo.mp4" controls width="100%"></video>
 
 ## 🚀 Quickstart
 
-Requires **Python 3.12** or newer.
+Requires **Python 3.12** or newer. We recommend using `uv` for development.
 
 ```bash
-# 1. Activate your virtual environment
-source .venv/bin/activate
+# 1. Clone and sync dependencies
+git clone https://github.com/langxin11/vgtr_py.git
+cd vgtr_py
+uv sync --dev
 
-# 2. Install package and dependencies
-pip install -e ".[test]"
-
-# 3. Serve the application
-vgtr-py serve
+# 2. Start the interactive viewer
+uv run vgtr-py serve
 ```
 
 ## 🧪 Testing
 
-This project strictly maintains test coverage. To avoid conflicts with implicit environmental plugins (like older ROS installations), run pytest simply by:
+To avoid environment interference (e.g., from older ROS plugins), run tests with:
 
 ```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 ```
 
-See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) or the `README_zh.md` file for details on the concrete migration strategy and Chinese documentation.
+---
+
+For deeper architectural details, please refer to the [implementation-plan.md](docs/implementation-plan.md).

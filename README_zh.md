@@ -1,7 +1,7 @@
 # ⚙️ vgtr-py
 
 <p align="center">
-  <strong>变几何桁架机器人（VGTR）编辑器与仿真器</strong>
+  <strong>变几何桁架机器人 (VGTR) 交互式设计与预览仿真环境</strong>
 </p>
 
 <p align="center">
@@ -11,80 +11,75 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Active%20Development-orange" alt="Status: Active Development">
   <img src="https://img.shields.io/badge/Python-3.12%2B-blue.svg" alt="Python 3.12+">
-  <img src="https://img.shields.io/badge/Code%20Style-Google-blueviolet" alt="Code Style: Google">
+  <img src="https://img.shields.io/badge/Architecture-Boundary%20Isolation-green" alt="Architecture: Boundary Isolation">
   <img src="https://img.shields.io/badge/Tests-Passing-success" alt="Tests">
 </p>
 
 ---
 
-`vgtr-py` 是一个面向 Python 的**变几何桁架机器人（Variable-Geometry Truss Robot, VGTR）**编辑器与预览仿真器。
+`vgtr-py` 是一个面向 Python 的**变几何桁架机器人 (Variable-Geometry Truss Robot, VGTR)** 编辑器与预览仿真器。
 
-它借鉴了 [PneuMesh](https://github.com/riceroll/pneumesh) 的简化动力学、轻量编辑交互和颜色组选控思路，将其迁移到更贴合 VGTR 的现代 Python 架构中，并重新定义了锚点、杆组与控制组语义。
+它在 [PneuMesh](https://github.com/riceroll/pneumesh) 的原型基础上，针对 VGTR 语义进行了全新的架构迁移。通过**锚点 (Anchors)**、**杆组 (Rod Groups)** 与 **控制组 (Control Groups)** 描述机器人的结构，并提供了基于物理受力的实时行为预览。
 
-## 🎯 项目目标
+## 🎯 核心特性
 
-这个项目保留了原始 PneuMesh 中核心且高效的优势：
+- 🏗️ **轻量级拓扑编辑**：支持锚点延伸、批量连接、固定/解固定等专为桁架结构优化的交互。
+- 🚀 **力驱动的动力学仿真**：
+    - 基于显式欧拉 (Explicit Euler) 积分的实时受力解算。
+    - **地面模型**：实现基于穿透深度的弹簧-阻尼惩罚力反馈。
+    - **库仑摩擦**：支持受正压力约束的平滑库仑摩擦模型，模拟真实的蹬地爬行。
+- 🎨 **移动副机械渲染**：采用三段式杆组渲染（套筒 + 双活塞杆），直观呈现杆件伸缩过程中的机械滑动感。
+- 🎛️ **实时参数化控制**：
+    - **在线调优**：支持在仿真运行中实时调节刚度、阻尼、摩擦系数等物理参数。
+    - **动态驱动**：自动根据控制组生成 UI 滑块，支持手动驱动与脚本控制。
 
-- 🏗️ **轻量级的结构编辑工作流**
-- 🚀 **简化的弹簧网络计算动力学**
-- 🎛️ **基于控制组与执行序列的脚本控制模型**
-- 🔄 **基于标准 JSON 的工作区交换格式**
+## 🏛️ 架构设计：边界隔离策略
 
-> [!WARNING]  
-> **定位声明**：在 v1 阶段，本项目旨在提供一个快速迭代和验证思路的轻量级交互设计工具，**不打算**替代如 MuJoCo 或 Isaac Gym 等高保真机器人仿真引擎。
+项目采用“对内图论，对外业务”的隔离策略以保证代码的长期可维护性：
 
-## 🏛️ 项目架构与状态
-
-目前项目代码库核心组件已搭建完成：
-
-- 🗄️ **Workspace (`workspace.py`, `schema.py`, `topology.py`)**：核心状态中心，负责拓扑结构管理与基于 Msgspec 的数据持久化。
-- ⚙️ **Engine (`engine.py`, `kinematics.py`)**：数值仿真内核，基于欧拉积分驱动物理计算与运动学更新。
-- 🎨 **Renderer (`rendering.py`)**：将复杂内部结构高保真地映射为三维可视化场景。
-- 💻 **UI (`ui.py`, `commands.py`)**：基于 Viser 的前端交互层以及基于 Typer 的 CLI 工具集。
-- 🕒 **History (`history.py`)**：基于快照 (Snapshot) 设计的完整撤销/重做操作栈机制。
-
-*注：当前 `src/vgtr_py/` 下的所有源码均严格遵照已本地化的 **Google Python (中文)** 代码文档规范。*
+- **对内**：底层算法 (`topology.py`) 使用 `vertex` 和 `edge` 概念，保持数学逻辑的简洁。
+- **对外**：上层业务与 UI (`ui.py`) 严格使用 `anchor`、`rod_group` 与 `control_group` 语义。
+- **翻译**：指令层 (`commands.py`) 负责术语映射，并接管基于快照的 **Undo/Redo** 逻辑。
 
 ## 🛠️ 技术栈
 
-- 🧮 **`numpy`**: 核心矩阵与模拟数组运算
-- 🌍 **`viser`**: 基于浏览器的响应式 3D 可视化与实时 GUI 绑定
-- 📦 **`msgspec`**: 严格的数据 Schema 校验与高性能的 JSON I/O
-- ⌨️ **`typer`**: 统一且友好的 CLI 命令行接口
-- 🧪 **`pytest` & `ruff`**: 单元测试支持与严苛的代码质量检测
+- **数值计算**: `numpy`
+- **3D 交互/GUI**: `viser`
+- **数据序列化**: `msgspec` (使用 `sites` + `rod_groups` 磁盘格式)
+- **CLI 工具**: `typer`
+- **质量保证**: `pytest` & `ruff`
 
-## 🗺️ 近距离里程碑 (路线图)
+## 🗺️ 路线图状态
 
-- [x] 与原始 PneuMesh 结构兼容的 JSON Schema 解析层
-- [x] 基于 Python + NumPy 的核心力学内核逻辑
-- [x] 基于 Viser 的三维交互渲染框架 (支持拖拽、多选、删除与连边)
-- [x] 基于快照机制的全局撤销/重做 (Undo/Redo) 历史系统
-- [x] 系统核心模块的规范化及单元测试用例全覆盖
-- [ ] 完整支持基于时间轴序列的脚本执行系统 (Script Grid Editor)
+- [x] 基于 `anchor/rod_group` 的业务语义重构
+- [x] 实现地面惩罚力与库仑摩擦模型
+- [x] 开发三段式活塞杆机械渲染系统
+- [x] 建立基于快照的全局历史记录系统
+- [x] 核心模块已有单元测试并当前全部通过
+- [ ] 交互式动作脚本序列编辑器 (Action Sequence Editor)
 
 ## 🚀 快速开始
 
-目前环境强制依赖 **Python 3.12+**。推荐使用虚拟环境或 `uv`。
+环境要求：**Python 3.12+**。推荐使用 `uv` 进行开发。
 
 ```bash
-# 1. 激活虚拟环境 (必要)
-source .venv/bin/activate
+# 1. 检出并安装依赖
+git clone https://github.com/langxin11/vgtr_py.git
+cd vgtr_py
+uv sync --dev
 
-# 2. 安装项目运行于测试依赖
-pip install -e ".[test]"
-
-# 3. 启动应用
-vgtr-py serve
+# 2. 启动交互式预览器
+uv run vgtr-py serve
 ```
 
-## 🧪 测试与质量
+## 🧪 自动化测试
 
-本项目接入并强制保持了完整的单元测试网。为避免与系统中的其他插件发生污染冲突（如较旧的 ROS 插件），推荐干净启动：
+运行测试前推荐禁用环境插件干扰：
 
 ```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 ```
 
 ---
 
-如果你要继续参与开发并了解更深的技术细节与架构迁移决策，请参阅 [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)。
+更多架构细节请参阅 [实现计划 (implementation-plan.md)](docs/implementation-plan.md)。
