@@ -6,9 +6,11 @@ UI 交互操作逻辑
 总体结构
 --------
 
-UI 由三个主要面板构成：
+UI 由五个主要面板构成：
 
-- ``Workspace``: 文件加载/保存、运行与全局开关。
+- ``Scene & Model``: 文件加载/保存、History（Undo/Redo）。
+- ``Simulation Settings``: 仿真开关、编辑模式、物理参数与高级步长设置。
+- ``Actuation / CG Control``: 脚本步进与控制组作动（运行时动态生成）。
 - ``Editing Tools``: 仅在编辑模式可见，包含选择与拓扑操作。
 - ``Playback``: 手动步进与运行时重置。
 
@@ -20,33 +22,44 @@ UI 由三个主要面板构成：
 - ``show_control_group``: 是否显示控制组信息。
 
 
-Workspace 面板行为
-------------------
+Scene & Model 面板行为
+----------------------
 
 Load / Save
 ^^^^^^^^^^^
 
-- ``Load Workspace`` 使用 ``Config Path`` 与 ``Example Path`` 重新构造 ``Workspace``。
-- 加载成功后会清空 Undo/Redo 历史并同步 GUI 状态。
-- ``Save Workspace`` 将当前工作区导出到 ``Save Path`` 指定位置。
+- ``Reload / Load Model`` 重新加载当前示例模型。
+- ``Export Path`` + ``Export Workspace`` 将当前工作区导出到指定位置。
 
-Undo / Redo
-^^^^^^^^^^^
+History 分组
+^^^^^^^^^^^^
 
-- ``Undo`` 与 ``Redo`` 通过 ``WorkspaceHistory`` 回放快照。
-- 成功撤销/重做后会：
+- ``History`` 默认折叠，包含 ``Undo`` 与 ``Redo`` 按钮。
+- Undo/Redo 通过 ``WorkspaceHistory`` 回放快照；成功后会清除拖拽临时状态、同步 GUI 并刷新渲染。
 
-  - 清除拖拽中的临时快照状态；
-  - 同步 GUI 勾选值；
-  - 刷新渲染和状态面板。
+Simulation Settings 面板行为
+------------------------------
 
 运行控制
 ^^^^^^^^
 
 - ``Simulate`` 控制后台循环是否自动步进。
-- ``Editing`` 切换编辑态，并在进入编辑时恢复初始姿态。
-- ``Simulation Steps / Second`` 控制每秒累计步数（非渲染帧率）。
-- ``Render Hz`` 控制后台循环睡眠周期与渲染刷新频率。
+- ``Editing Mode`` 切换编辑态，并在进入编辑时恢复初始姿态。
+
+物理参数
+^^^^^^^^
+
+- ``Rod Stiffness (k)``、``Global Damping``、``Coulomb Friction (mu)`` 可实时调节。
+- ``Ground Penalty (Spring)`` 默认折叠，内含 ``Ground Stiffness`` 与 ``Ground Damping``。
+- ``Gravity`` 开关控制重力启用。
+
+高级步长
+^^^^^^^^
+
+- ``Advanced Timestep`` 内含：
+
+  - ``Steps / Second``: 控制仿真迭代速率；
+  - ``UI Render Hz``: 控制渲染刷新频率（30 或 60）。
 
 
 Editing Tools 面板行为
@@ -54,11 +67,11 @@ Editing Tools 面板行为
 
 该面板仅在 ``editing=True`` 时可见。关闭编辑态时会自动清理移动态与拖拽状态。
 
-Move Anchor
-^^^^^^^^^^^
+Enable Transform Gizmo
+^^^^^^^^^^^^^^^^^^^^^^
 
-- ``Move Anchor`` 开启后允许通过变换控制器拖拽锚点。
-- 若当前不在编辑态，勾选 ``Move Anchor`` 会自动切入编辑态。
+- ``Enable Transform Gizmo`` 开启后允许通过变换控制器拖拽锚点。
+- 若当前不在编辑态，勾选 ``Enable Transform Gizmo`` 会自动切入编辑态。
 
 Selection 分组
 ^^^^^^^^^^^^^^
@@ -80,8 +93,8 @@ Topology 分组
   - 连接当前选中锚点集合；
   - 少于 2 个选中锚点时会提示无法连接。
 
-- ``Remove Selected Rod Groups``: 删除选中杆组。
-- ``Remove Selected Anchors``: 删除选中锚点（并处理关联拓扑）。
+- ``Remove Rods``: 删除选中杆组。
+- ``Remove Anchors``: 删除选中锚点（并处理关联拓扑）。
 - ``Center Model``: 对当前模型执行居中命令。
 
 Click Mode
@@ -134,8 +147,8 @@ Playback 与后台循环
 Playback 面板
 ^^^^^^^^^^^^^
 
-- ``Step Once``: 按 ``Manual Step Count`` 手动推进 ``n`` 步。
-- ``Reset Runtime``: 重置运行时状态（如步数计数等）。
+- ``Step Once``: 按 ``Manual steps`` 手动推进 ``n`` 步。
+- ``Reset Physics State``: 重置运行时状态（如步数计数等）。
 
 后台循环触发条件
 ^^^^^^^^^^^^^^^^

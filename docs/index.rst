@@ -18,6 +18,7 @@ vgtr-py Documentation
 
    api
    implementation-plan
+   simulator-api-design
 
 索引与页面
 ----------
