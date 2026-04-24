@@ -16,6 +16,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
+    "sphinx.ext.mathjax",
     "myst_parser",
 ]
 
@@ -43,6 +44,8 @@ html_theme_options = {
 }
 
 autodoc_member_order = "bysource"
+myst_enable_extensions = ["dollarmath"]
+
 autosummary_generate = True
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True

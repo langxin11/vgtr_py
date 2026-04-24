@@ -1,5 +1,9 @@
 # XPBD 物理解算器设计规范 (提案)
 
+> **⚠️ 状态说明：本提案尚未实现。**
+>
+> 当前代码（`src/vgtr_py/sim.py`）使用的是基于胡克定律的 **Semi-implicit Euler** 显式积分。XPBD 是未来可能的演进方向，用于解决大刚度下的数值稳定性问题，但尚未进入开发排期。
+
 本文档描述了变几何桁架机器人（VGTR）从当前的显式动力学升级为 **XPBD (eXtended Position-Based Dynamics)** 算法的技术方案。
 
 ## 1. 为什么要引入 XPBD？

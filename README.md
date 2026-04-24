@@ -28,6 +28,8 @@ Building upon the prototypes of [PneuMesh](https://github.com/riceroll/pneumesh)
     - Real-time force solving based on **Explicit Euler** integration.
     - **Ground Model**: Penalty-based spring-damper feedback for robust ground contact.
     - **Coulomb Friction**: Smoothed Coulomb friction model constrained by normal force, enabling realistic crawling and bracing behaviors.
+- ⚙️ **Realistic Actuator Model**: Type-aware rods (Passive Rigid / Active Actuator / Soft Elastic) with travel limits, force limits, and stall detection—no more infinitely stretchable "rubber bands".
+- 🤖 **RL-Ready Environment**: `VGTREnv` exposes a Gymnasium-style API (`reset` / `step`), with observations including rod-level axial forces, strains, and stall flags.
 - 🎨 **Mechanical Prismatic Rendering**: A three-part rod rendering system (Sleeve + Dual internal rods) that visually represents the sliding motion of prismatic joints.
 - 🎛️ **Real-time Parameter Tuning**:
     - **Live Tuning**: Dynamically adjust stiffness, damping, and friction coefficients during simulation.
@@ -56,7 +58,9 @@ The project employs an isolation strategy of "Graph Theory Internals vs. Robotic
 - [x] Develop three-part mechanical prismatic joint rendering
 - [x] Establish a global Snapshot-based history system
 - [x] Comprehensive unit tests for core modules (all currently passing)
+- [x] Gymnasium-compatible `VGTREnv` and projection layer (partial)
 - [ ] Interactive Action Sequence Editor (Script Grid Editor)
+- [ ] Batched / parallel simulation for large-scale RL training
 
 ## 🎬 Demo
 

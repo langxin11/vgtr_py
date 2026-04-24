@@ -19,6 +19,7 @@ vgtr-py Documentation
    api
    implementation-plan
    simulator-api-design
+   XPBD
 
 索引与页面
 ----------
