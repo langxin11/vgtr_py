@@ -34,12 +34,16 @@ from .commands import (
     set_selected_anchor_position,
     undo,
 )
-from .engine import step
+from .data import VGTRData, make_data, reset_data
 from .history import WorkspaceHistory
+from .model import VGTRModel, compile_workspace
 from .rendering import SceneRenderer
-from .workspace import Workspace, WorkspaceSnapshot
+from .sim import Simulator, advance_script_targets
+from .workspace import ROD_TYPE_ACTIVE, Workspace, WorkspaceSnapshot
 
 LOGGER = logging.getLogger(__name__)
+_MAX_CONTROL_SLIDERS = 60
+_MAX_STATUS_SELECTION_ITEMS = 6
 
 
 @dataclass
@@ -53,6 +57,9 @@ class VgtrUiApp:
     server: viser.ViserServer
     workspace: Workspace
     renderer: SceneRenderer
+    model: VGTRModel | None = None
+    data: VGTRData | None = None
+    simulator: Simulator = field(default_factory=Simulator)
     render_hz: float = 60.0
     simulation_steps_per_second: float = 1000.0
     current_config_path: Path | None = None
@@ -75,6 +82,8 @@ class VgtrUiApp:
     _edit_tools_folder: viser.GuiFolderHandle | None = None
     _actuation_folder: viser.GuiFolderHandle | None = None
     _control_sliders: list[viser.GuiSliderHandle[float]] = field(default_factory=list)
+    _actuation_mode_dropdown: viser.GuiDropdownHandle[str] | None = None
+    _actuation_status_markdown: viser.GuiMarkdownHandle | None = None
 
     # 仿真参数句柄
     _k_slider: viser.GuiSliderHandle[float] | None = None
@@ -89,6 +98,12 @@ class VgtrUiApp:
     _is_transform_dragging: bool = False
     _simulation_step_accumulator: float = 0.0
     _last_simulation_tick_time: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.model is None:
+            self.model = compile_workspace(self.workspace)
+        if self.data is None:
+            self.data = make_data(self.model)
 
     def start(self) -> None:
         """初始化场景和 GUI，并启动后台仿真循环。"""
@@ -108,7 +123,7 @@ class VgtrUiApp:
     def refresh(self) -> None:
         """立即刷新渲染和状态栏。"""
         with self._lock:
-            self.renderer.render(self.workspace)
+            self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
             self._update_status()
 
     def stop(self) -> None:
@@ -122,9 +137,16 @@ class VgtrUiApp:
         restore_pose: bool = False,
         preserve_move_state: bool = False,
     ) -> None:
+        """切换编辑模式并同步相关 UI 状态。
+
+        Args:
+            editing: 是否进入编辑模式。
+            restore_pose: 进入编辑模式时是否重置运行时姿态。
+            preserve_move_state: 是否保留当前的移动锚点/整体状态。
+        """
         self.workspace.ui.editing = editing
         if editing and restore_pose:
-            self.workspace.restore_initial_state()
+            self._reset_runtime_state()
         if editing and getattr(self, "_select_mode", None) is not None:
             self._select_mode.value = "toggle"
         if not preserve_move_state:
@@ -138,9 +160,62 @@ class VgtrUiApp:
             self._edit_tools_folder.visible = editing
 
     def _set_file_status(self, msg: str, *, log_terminal: bool = False) -> None:
+        """更新文件状态栏文本，并可选择同时输出到终端。
+
+        Args:
+            msg: 状态信息。
+            log_terminal: 是否打印到终端。
+        """
         self._file_status_markdown.content = msg
         if log_terminal:
             print(msg)
+
+    def _runtime_anchor_pos(self) -> np.ndarray:
+        """获取用于渲染的锚点坐标。
+
+        编辑模式下返回拓扑原始位置，仿真模式下返回运行时数据位置。
+
+        Returns:
+            锚点坐标数组，形状 (anchor_count, 3)。
+        """
+        if self.data is None:
+            return self.workspace.topology.anchor_pos
+        return self.workspace.topology.anchor_pos if self.workspace.ui.editing else self.data.qpos
+
+    def _format_index_summary(self, indices: list[int]) -> str:
+        """格式化索引摘要，避免长列表淹没状态面板。"""
+        if not indices:
+            return "[]"
+        if len(indices) <= _MAX_STATUS_SELECTION_ITEMS:
+            return str(indices)
+        head = indices[:_MAX_STATUS_SELECTION_ITEMS]
+        return f"{head} +{len(indices) - len(head)} more"
+
+    def _rebuild_runtime(self) -> None:
+        """根据当前工作区重新编译仿真模型与数据。"""
+        self.model = compile_workspace(self.workspace)
+        self.data = make_data(self.model)
+
+    def _reset_runtime_state(self) -> None:
+        """重置仿真数据到初始状态；若未初始化则先重建。"""
+        if self.model is None or self.data is None:
+            self._rebuild_runtime()
+            return
+        reset_data(self.model, self.data)
+
+    def _run_simulation_steps(self, n_steps: int, *, scripting: bool) -> None:
+        """在后台连续推进若干仿真步。
+
+        Args:
+            n_steps: 步数。
+            scripting: 是否在此步进过程中推进脚本动作。
+        """
+        if self.model is None or self.data is None or n_steps <= 0:
+            return
+        for _ in range(n_steps):
+            if scripting:
+                advance_script_targets(self.model, self.data)
+            self.simulator.step(self.model, self.data)
 
     def _build_gui(self) -> None:
         """构建优化后的参数化控制面板。"""
@@ -158,50 +233,62 @@ class VgtrUiApp:
             initial_value=self.current_example_path.name if self.current_example_path and self.current_example_path.name in example_files else (example_files[0] if example_files else ""),
         )
         
-        # 1. 场景与模型管理
-        with self.server.gui.add_folder("Scene & Model"):
-            load_button = self.server.gui.add_button("Reload / Load Model")
-            save_text = self.server.gui.add_text("Export Path", str(self.current_example_path or ""))
-            save_button = self.server.gui.add_button("Export Workspace")
-            
-            with self.server.gui.add_folder("History", expand_by_default=False):
-                undo_button = self.server.gui.add_button("Undo")
-                redo_button = self.server.gui.add_button("Redo")
-            
-            self._file_status_markdown = self.server.gui.add_markdown("Ready.")
+        # 创建 Tab 标签页容器
+        tab_group = self.server.gui.add_tab_group()
+        
+        # --- Tab 1: Editor (搭建与编辑) ---
+        with tab_group.add_tab("Editor", icon="pencil"):
+            # 1. 场景与模型管理
+            with self.server.gui.add_folder("Scene & Model"):
+                load_button = self.server.gui.add_button("Reload / Load Model")
+                save_text = self.server.gui.add_text("Export Path", str(self.current_example_path or ""))
+                save_button = self.server.gui.add_button("Export Workspace")
+                
+                with self.server.gui.add_folder("History", expand_by_default=False):
+                    undo_button = self.server.gui.add_button("Undo")
+                    redo_button = self.server.gui.add_button("Redo")
+                
+                self._file_status_markdown = self.server.gui.add_markdown("Ready.")
 
-        # 2. 实时仿真参数
-        with self.server.gui.add_folder("Simulation Settings"):
-            simulate = self.server.gui.add_checkbox("Simulate", self.workspace.ui.simulate)
-            editing = self.server.gui.add_checkbox("Editing Mode", self.workspace.ui.editing)
-            scripting = self.server.gui.add_checkbox("Enable Scripting", True)
-            
-            k_slider = self.server.gui.add_slider(
-                "Rod Stiffness (k)", min=5000.0, max=50000.0, step=1000.0, 
-                initial_value=float(self.workspace.config.k)
-            )
-            damping_slider = self.server.gui.add_slider(
-                "Global Damping", min=0.5, max=1.0, step=0.01, 
-                initial_value=float(self.workspace.config.damping_ratio)
-            )
-            friction_slider = self.server.gui.add_slider(
-                "Coulomb Friction (mu)", min=0.0, max=2.0, step=0.05, 
-                initial_value=float(self.workspace.config.friction_factor)
-            )
-            
-            with self.server.gui.add_folder("Ground Penalty (Spring)", expand_by_default=False):
-                ground_k_slider = self.server.gui.add_slider(
-                    "Ground Stiffness", min=1e4, max=5e5, step=1e4, 
-                    initial_value=float(self.workspace.config.ground_k)
+            # 2. 编辑模式与视图开关：固定可见，避免用户为了进入编辑模式先去 Physics tab。
+            with self.server.gui.add_folder("Edit Mode"):
+                editing = self.server.gui.add_checkbox("Editing Mode", self.workspace.ui.editing)
+                move_anchor = self.server.gui.add_checkbox(
+                    "Enable Transform Gizmo",
+                    self.workspace.ui.moving_anchor,
                 )
-                ground_d_slider = self.server.gui.add_slider(
-                    "Ground Damping", min=0.0, max=5000.0, step=50.0, 
-                    initial_value=float(self.workspace.config.ground_d)
+                show_control_group = self.server.gui.add_checkbox(
+                    "Show CG Colors",
+                    self.workspace.ui.show_control_group,
                 )
-            
-            gravity_toggle = self.server.gui.add_checkbox("Gravity", self.workspace.config.gravity)
-            
-            with self.server.gui.add_folder("Advanced Timestep"):
+
+            # 3. 编辑工具：只在编辑模式下显示。
+            edit_tools_folder = self.server.gui.add_folder("Editing Tools", visible=self.workspace.ui.editing)
+            with edit_tools_folder:
+                with self.server.gui.add_folder("Selection"):
+                    self.server.gui.add_markdown(
+                        "Selection actions stay compact by design; large selections are summarized in the status bar."
+                    )
+                    clear_button = self.server.gui.add_button("Clear Selection")
+                    fix_button = self.server.gui.add_button("Fix Selected")
+                    unfix_button = self.server.gui.add_button("Unfix Selected")
+                    with self.server.gui.add_folder("Assign Control Group"):
+                        cg_index = self.server.gui.add_number("Target CG Index", 0, min=0, max=20, step=1)
+                        assign_cg_button = self.server.gui.add_button("Apply to Selected Rods")
+
+                with self.server.gui.add_folder("Topology"):
+                    add_anchor_button = self.server.gui.add_button("Add Anchor")
+                    connect_button = self.server.gui.add_button("Add Rod Group")
+                    remove_rod_button = self.server.gui.add_button("Remove Rods")
+                    remove_anchor_button = self.server.gui.add_button("Remove Anchors")
+                    center_button = self.server.gui.add_button("Center Model")
+                    select_mode = self.server.gui.add_dropdown("Click Mode", ("replace", "toggle", "add-child"), initial_value="toggle")
+
+        # --- Tab 2: Physics (物理参数与步进) ---
+        with tab_group.add_tab("Physics", icon="settings"):
+            # 2. 实时仿真参数
+            with self.server.gui.add_folder("Run Control"):
+                simulate = self.server.gui.add_checkbox("Simulate", self.workspace.ui.simulate)
                 simulation_rate = self.server.gui.add_number(
                     "Steps / Second", int(self.simulation_steps_per_second),
                     min=10, max=5000, step=50
@@ -210,37 +297,51 @@ class VgtrUiApp:
                     "UI Render Hz", ("30", "60"), initial_value=str(int(self.render_hz))
                 )
 
-        # 3. 动态控制条容器 (Actuation)
-        self._actuation_folder = self.server.gui.add_folder("Actuation / CG Control")
+            with self.server.gui.add_folder("Solver Parameters"):
+                k_slider = self.server.gui.add_slider(
+                    "Rod Stiffness (k)", min=5000.0, max=50000.0, step=1000.0, 
+                    initial_value=float(self.workspace.config.k)
+                )
+                damping_slider = self.server.gui.add_slider(
+                    "Global Damping", min=0.5, max=1.0, step=0.01, 
+                    initial_value=float(self.workspace.config.damping_ratio)
+                )
+                friction_slider = self.server.gui.add_slider(
+                    "Coulomb Friction (mu)", min=0.0, max=2.0, step=0.05, 
+                    initial_value=float(self.workspace.config.friction_factor)
+                )
+                
+                with self.server.gui.add_folder("Ground Penalty (Spring)", expand_by_default=False):
+                    ground_k_slider = self.server.gui.add_slider(
+                        "Ground Stiffness", min=1e4, max=5e5, step=1e4, 
+                        initial_value=float(self.workspace.config.ground_k)
+                    )
+                    ground_d_slider = self.server.gui.add_slider(
+                        "Ground Damping", min=0.0, max=5000.0, step=50.0, 
+                        initial_value=float(self.workspace.config.ground_d)
+                    )
+                
+                gravity_toggle = self.server.gui.add_checkbox("Gravity", self.workspace.config.gravity)
 
-        # 4. 编辑工具
-        edit_tools_folder = self.server.gui.add_folder("Editing Tools", visible=self.workspace.ui.editing)
-        with edit_tools_folder:
-            move_anchor = self.server.gui.add_checkbox("Enable Transform Gizmo", self.workspace.ui.moving_anchor)
-            show_control_group = self.server.gui.add_checkbox("Show CG Colors", self.workspace.ui.show_control_group)
-            
-            with self.server.gui.add_folder("Selection"):
-                clear_button = self.server.gui.add_button("Clear Selection")
-                fix_button = self.server.gui.add_button("Fix Selected")
-                unfix_button = self.server.gui.add_button("Unfix Selected")
-                with self.server.gui.add_folder("Assign Control Group"):
-                    cg_index = self.server.gui.add_number("Target CG Index", 0, min=0, max=20, step=1)
-                    assign_cg_button = self.server.gui.add_button("Apply to Selected Rods")
+            # 5. 回放与状态
+            with self.server.gui.add_folder("Playback"):
+                step_count = self.server.gui.add_number("Manual steps", 8, min=1, max=200, step=1)
+                step_once = self.server.gui.add_button("Step Once")
+                reset_runtime = self.server.gui.add_button("Reset Physics State")
+                self._status_markdown = self.server.gui.add_markdown("status")
 
-            with self.server.gui.add_folder("Topology"):
-                add_anchor_button = self.server.gui.add_button("Add Anchor")
-                connect_button = self.server.gui.add_button("Add Rod Group")
-                remove_rod_button = self.server.gui.add_button("Remove Rods")
-                remove_anchor_button = self.server.gui.add_button("Remove Anchors")
-                center_button = self.server.gui.add_button("Center Model")
-                select_mode = self.server.gui.add_dropdown("Click Mode", ("replace", "toggle", "add-child"), initial_value="toggle")
-
-        # 5. 回放与状态
-        with self.server.gui.add_folder("Playback"):
-            step_count = self.server.gui.add_number("Manual steps", 8, min=1, max=200, step=1)
-            step_once = self.server.gui.add_button("Step Once")
-            reset_runtime = self.server.gui.add_button("Reset Physics State")
-            self._status_markdown = self.server.gui.add_markdown("status")
+        # --- Tab 3: Actuation (主动驱动测试) ---
+        with tab_group.add_tab("Actuation", icon="device-gamepad-2"):
+            # 3. 动态控制条容器 (Actuation)
+            with self.server.gui.add_folder("Control Mode"):
+                scripting = self.server.gui.add_checkbox("Enable Scripting", True)
+                actuation_mode = self.server.gui.add_dropdown(
+                    "Manual Mode",
+                    ("control-groups", "per-rod"),
+                    initial_value="control-groups",
+                )
+                self._actuation_status_markdown = self.server.gui.add_markdown("Ready.")
+            self._actuation_folder = self.server.gui.add_folder("Actuation Controls")
 
         # --- 回调绑定 ---
 
@@ -266,22 +367,42 @@ class VgtrUiApp:
                     self._set_file_status(f"Exported to `{save_text.value}`", log_terminal=True)
 
         @k_slider.on_update
-        def _(_): self.workspace.config.k = k_slider.value
+        def _(_):
+            self.workspace.config.k = k_slider.value
+            self._rebuild_runtime()
         @damping_slider.on_update
-        def _(_): self.workspace.config.damping_ratio = damping_slider.value
+        def _(_):
+            self.workspace.config.damping_ratio = damping_slider.value
+            self._rebuild_runtime()
         @friction_slider.on_update
-        def _(_): self.workspace.config.friction_factor = friction_slider.value
+        def _(_):
+            self.workspace.config.friction_factor = friction_slider.value
+            self._rebuild_runtime()
         @ground_k_slider.on_update
-        def _(_): self.workspace.config.ground_k = ground_k_slider.value
+        def _(_):
+            self.workspace.config.ground_k = ground_k_slider.value
+            self._rebuild_runtime()
         @ground_d_slider.on_update
-        def _(_): self.workspace.config.ground_d = ground_d_slider.value
+        def _(_):
+            self.workspace.config.ground_d = ground_d_slider.value
+            self._rebuild_runtime()
         @gravity_toggle.on_update
-        def _(_): self.workspace.config.gravity = gravity_toggle.value; self.refresh()
+        def _(_):
+            self.workspace.config.gravity = gravity_toggle.value
+            self._rebuild_runtime()
+            self.refresh()
 
         @simulation_rate.on_update
         def _(_): self.simulation_steps_per_second = float(simulation_rate.value)
         @render_rate.on_update
         def _(_): self.render_hz = float(render_rate.value)
+        @actuation_mode.on_update
+        def _(_):
+            with self._lock:
+                if self.data is not None and actuation_mode.value == "control-groups":
+                    self.data.rod_target_override.fill(np.nan)
+                self._refresh_actuation_ui()
+                self.refresh()
 
         @undo_button.on_click
         def _(_): 
@@ -313,17 +434,22 @@ class VgtrUiApp:
 
         @clear_button.on_click
         def _(_):
-            with self._lock: clear_workspace_selection(self.workspace); self.refresh()
+            with self._lock:
+                clear_workspace_selection(self.workspace)
+                self._refresh_actuation_ui()
+                self.refresh()
         @fix_button.on_click
         def _(_):
             with self._lock:
                 if fix_selected(self.workspace, self.history, True):
+                    self._rebuild_runtime()
                     self._set_file_status("Fixed selected anchors.", log_terminal=True)
                 self.refresh()
         @unfix_button.on_click
         def _(_):
             with self._lock:
                 if fix_selected(self.workspace, self.history, False):
+                    self._rebuild_runtime()
                     self._set_file_status("Unfixed selected anchors.", log_terminal=True)
                 self.refresh()
 
@@ -331,7 +457,9 @@ class VgtrUiApp:
         def _(_):
             with self._lock:
                 changed = assign_selected_rod_groups_control_group(self.workspace, self.history, control_group_index=int(cg_index.value))
-                if changed: self._set_file_status(f"Assigned rods to CG {int(cg_index.value)}", log_terminal=True)
+                if changed:
+                    self._rebuild_runtime()
+                    self._set_file_status(f"Assigned rods to CG {int(cg_index.value)}", log_terminal=True)
                 self.refresh()
 
         @add_anchor_button.on_click
@@ -341,6 +469,7 @@ class VgtrUiApp:
                 before_rods = int(self.workspace.topology.rod_anchors.shape[0])
                 changed = add_joint_from_selection(self.workspace, self.history)
                 if changed:
+                    self._rebuild_runtime()
                     new_index = int(self.workspace.topology.anchor_pos.shape[0] - 1)
                     auto_connected = int(self.workspace.topology.rod_anchors.shape[0]) > before_rods
                     msg = f"Added anchor {new_index}"
@@ -352,28 +481,42 @@ class VgtrUiApp:
         @connect_button.on_click
         def _(_):
             with self._lock:
-                connect_selected_anchors(self.workspace, self.history)
+                if connect_selected_anchors(self.workspace, self.history):
+                    self._rebuild_runtime()
                 self.refresh()
 
         @remove_anchor_button.on_click
         def _(_):
-            with self._lock: remove_selected_anchors_command(self.workspace, self.history); self.refresh()
+            with self._lock:
+                if remove_selected_anchors_command(self.workspace, self.history):
+                    self._rebuild_runtime()
+                self.refresh()
 
         @remove_rod_button.on_click
         def _(_):
-            with self._lock: remove_selected_rod_groups_command(self.workspace, self.history); self.refresh()
+            with self._lock:
+                if remove_selected_rod_groups_command(self.workspace, self.history):
+                    self._rebuild_runtime()
+                self.refresh()
 
         @center_button.on_click
         def _(_):
-            with self._lock: center_model_command(self.workspace, self.history); self.refresh()
+            with self._lock:
+                if center_model_command(self.workspace, self.history):
+                    self._rebuild_runtime()
+                self.refresh()
 
         @step_once.on_click
         def _(_):
-            with self._lock: step(self.workspace, n=int(step_count.value)); self.refresh()
+            with self._lock:
+                self._run_simulation_steps(int(step_count.value), scripting=bool(self._scripting_toggle.value))
+                self.refresh()
 
         @reset_runtime.on_click
         def _(_):
-            with self._lock: self.workspace.reset_runtime(); self.refresh()
+            with self._lock:
+                self._reset_runtime_state()
+                self.refresh()
 
         # 保存句柄
         self._example_dropdown = example_dropdown
@@ -389,13 +532,14 @@ class VgtrUiApp:
         self._gravity_toggle = gravity_toggle
         self._friction_slider = friction_slider
         self._scripting_toggle = scripting
+        self._actuation_mode_dropdown = actuation_mode
         
         self.renderer.on_anchor_click = self._on_anchor_click
         self.renderer.on_rod_group_click = self._on_rod_group_click
         self._select_mode = select_mode
 
     def _refresh_actuation_ui(self) -> None:
-        """动态刷新控制组滑块。"""
+        """动态刷新驱动控制 UI，根据模式展示控制组或按杆件滑块。"""
         if self._actuation_folder is None:
             return
             
@@ -403,36 +547,133 @@ class VgtrUiApp:
         for s in self._control_sliders:
             s.remove()
         self._control_sliders.clear()
-        
-        # 获取当前控制组数量
+        if self._actuation_status_markdown is not None:
+            self._actuation_status_markdown.content = "Ready."
+
+        if self.data is None or self.model is None:
+            self._actuation_folder.visible = False
+            return
+
+        mode = (
+            self._actuation_mode_dropdown.value
+            if self._actuation_mode_dropdown is not None
+            else "control-groups"
+        )
+
+        self._actuation_folder.visible = True
+        if mode == "per-rod":
+            self._build_per_rod_sliders()
+            return
+        self._build_control_group_sliders()
+
+    def _build_control_group_sliders(self) -> None:
+        """渲染控制组滑块，并在数量过大时降级为摘要提示。"""
+        if self.data is None:
+            return
         num_channels = self.workspace.script.num_channels
         if num_channels == 0:
             self._actuation_folder.visible = False
+            if self._actuation_status_markdown is not None:
+                self._actuation_status_markdown.content = "No control groups available."
             return
-            
-        self._actuation_folder.visible = True
+        if num_channels > _MAX_CONTROL_SLIDERS:
+            if self._actuation_status_markdown is not None:
+                self._actuation_status_markdown.content = (
+                    f"Showing summary only: {num_channels} control groups exceed slider limit "
+                    f"of {_MAX_CONTROL_SLIDERS}. Switch to `per-rod` only when editing a smaller model."
+                )
+            return
         with self._actuation_folder:
             for i in range(num_channels):
-                # 创建滑块，闭包捕获索引 i
                 slider = self.server.gui.add_slider(
-                    f"CG {i}", min=0.0, max=1.0, step=0.01, 
-                    initial_value=float(self.workspace.physics.control_group_target[i])
+                    f"CG {i}",
+                    min=0.0,
+                    max=1.0,
+                    step=0.01,
+                    initial_value=float(self.data.ctrl_target[i]),
                 )
-                
+
                 @slider.on_update
                 def _(_, idx=i, s=slider):
                     with self._lock:
-                        self.workspace.physics.control_group_target[idx] = s.value
+                        if self.data is not None:
+                            self.data.ctrl_target[idx] = s.value
+                            if self.data.rod_target_override.shape[0]:
+                                self.data.rod_target_override.fill(np.nan)
+
+                self._control_sliders.append(slider)
+
+    def _build_per_rod_sliders(self) -> None:
+        """渲染按杆件直接控制的滑块。"""
+        if self.data is None or self.model is None:
+            return
+        active_indices = np.flatnonzero(self.model.rod_type == ROD_TYPE_ACTIVE).tolist()
+        if not active_indices:
+            self._actuation_folder.visible = False
+            if self._actuation_status_markdown is not None:
+                self._actuation_status_markdown.content = "No active rods available for direct control."
+            return
+
+        slider_indices = active_indices
+        if len(slider_indices) > _MAX_CONTROL_SLIDERS:
+            selected = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
+            selected_active = [index for index in selected if index in active_indices]
+            if selected_active:
+                slider_indices = selected_active[:_MAX_CONTROL_SLIDERS]
+                if self._actuation_status_markdown is not None:
+                    self._actuation_status_markdown.content = (
+                        f"Too many active rods ({len(active_indices)}). Showing selected rods only: "
+                        f"{self._format_index_summary(selected_active)}."
+                    )
+            else:
+                if self._actuation_status_markdown is not None:
+                    self._actuation_status_markdown.content = (
+                        f"Too many active rods ({len(active_indices)}). Select rods in the Editor tab "
+                        "to expose direct sliders."
+                    )
+                return
+
+        with self._actuation_folder:
+            for rod_index in slider_indices:
+                lo, hi = self.model.rod_length_limits[rod_index]
+                current = float(
+                    self.data.rod_target_override[rod_index]
+                    if np.isfinite(self.data.rod_target_override[rod_index])
+                    else self.data.rod_target_length[rod_index]
+                )
                 
+                # Convert current length to 0-1 normalized value: 0=min_length(lo), 1=max_length(hi)
+                current_norm = 0.0 if hi <= lo else (np.clip(current, lo, hi) - lo) / (hi - lo)
+                
+                slider = self.server.gui.add_slider(
+                    f"Rod {rod_index}",
+                    min=0.0,
+                    max=1.0,
+                    step=0.01,
+                    initial_value=float(current_norm),
+                )
+
+                @slider.on_update
+                def _(_, idx=rod_index, s=slider, min_l=float(lo), max_l=float(hi)):
+                    with self._lock:
+                        if self.data is not None:
+                            self.data.rod_target_override[idx] = min_l + s.value * (max_l - min_l)
+
                 self._control_sliders.append(slider)
 
     def _on_anchor_click(self, index: int) -> None:
+        """锚点图元点击回调：根据选择模式执行选中或添加子节点。
+
+        Args:
+            index: 被点击的锚点索引。
+        """
         with self._lock:
             mode = self._select_mode.value
             if mode == "add-child":
                 before_rods = int(self.workspace.topology.rod_anchors.shape[0])
                 added = add_joint_from_anchor(self.workspace, self.history, index)
                 if added:
+                    self._rebuild_runtime()
                     new_index = int(self.workspace.topology.anchor_pos.shape[0] - 1)
                     auto_connected = int(self.workspace.topology.rod_anchors.shape[0]) > before_rods
                     msg = f"Added anchor {new_index} from {index}"
@@ -444,19 +685,29 @@ class VgtrUiApp:
             select_anchor_by_mode(self.workspace, index=index, mode=mode)
             selected = np.flatnonzero(self.workspace.ui.anchor_status == 2).tolist()
             self._set_file_status(f"Selected anchors: {selected}")
+            self._refresh_actuation_ui()
             self.refresh()
 
     def _on_transform_update(self, index: int, position: np.ndarray) -> None:
+        """变换控件拖拽更新回调：同步锚点位置并重建运行时模型。
+
+        Args:
+            index: 被拖拽的锚点索引。
+            position: 新的三维坐标。
+        """
         with self._lock:
             set_selected_anchor_position(self.workspace, index, position)
+            self._rebuild_runtime()
             self.refresh()
 
     def _on_transform_drag_start(self) -> None:
+        """变换控件拖拽开始回调：记录快照以便撤销。"""
         with self._lock:
             self._is_transform_dragging = True
             self._drag_snapshot = self.workspace.snapshot()
 
     def _on_transform_drag_end(self) -> None:
+        """变换控件拖拽结束回调：将拖拽操作提交到历史栈。"""
         with self._lock:
             self._is_transform_dragging = False
             if self._drag_snapshot is None: return
@@ -464,14 +715,21 @@ class VgtrUiApp:
             self._drag_snapshot = None
 
     def _on_rod_group_click(self, index: int) -> None:
+        """杆组图元点击回调：根据选择模式执行选中。
+
+        Args:
+            index: 被点击的杆组索引。
+        """
         with self._lock:
             mode = self._select_mode.value
             select_rod_group_by_mode(self.workspace, index=index, mode=mode)
             selected = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
             self._set_file_status(f"Selected rod groups: {selected}")
+            self._refresh_actuation_ui()
             self.refresh()
 
     def _simulation_loop(self) -> None:
+        """后台仿真主循环：按渲染帧率积累时间并推进物理步数。"""
         while self._running:
             now = time.perf_counter()
             with self._lock:
@@ -483,16 +741,25 @@ class VgtrUiApp:
                     self._simulation_step_accumulator += elapsed * self.simulation_steps_per_second
                     n_steps = int(self._simulation_step_accumulator)
                     if n_steps > 0:
-                        # 仅在 Enable Scripting 开启时执行脚本
-                        step(self.workspace, n=n_steps, scripting=self._scripting_toggle.value)
+                        self._run_simulation_steps(
+                            n_steps,
+                            scripting=bool(self._scripting_toggle.value),
+                        )
                         self._simulation_step_accumulator -= n_steps
-                        
-                        # 同步滑块位置（如果是脚本在驱动）
-                        if self._scripting_toggle.value:
-                            for i, s in enumerate(self._control_sliders):
-                                s.value = float(self.workspace.physics.control_group_target[i])
 
-                    self.renderer.render(self.workspace)
+                        # 同步滑块位置（如果是脚本在驱动）
+                        if (
+                            self._scripting_toggle.value
+                            and self.data is not None
+                            and (
+                                self._actuation_mode_dropdown is None
+                                or self._actuation_mode_dropdown.value == "control-groups"
+                            )
+                        ):
+                            for i, s in enumerate(self._control_sliders):
+                                s.value = float(self.data.ctrl_target[i])
+
+                    self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
                     self._update_status()
                 else:
                     self._simulation_step_accumulator = 0.0
@@ -500,17 +767,24 @@ class VgtrUiApp:
             time.sleep(1.0 / self.render_hz)
 
     def _load_workspace(self, *, config_path: Path | None, example_path: Path) -> None:
+        """加载新工作区并重置所有运行时状态与 UI。
+
+        Args:
+            config_path: 配置文件路径。
+            example_path: 示例/模型文件路径。
+        """
         self.workspace = load_workspace_from_paths(
             config_path=config_path,
             example_path=example_path,
         )
+        self._rebuild_runtime()
         clear_workspace_history(self.history)
         self._drag_snapshot = None
         self.current_config_path = config_path
         self.current_example_path = example_path
         self._sync_gui_from_workspace()
         self._refresh_actuation_ui() # 加载新模型后刷新控制条
-        
+
         if self._example_dropdown is not None:
             if example_path.name in self._example_dropdown.options:
                 self._example_dropdown.value = example_path.name
@@ -519,6 +793,11 @@ class VgtrUiApp:
         self.refresh()
 
     def _save_workspace(self, path: Path) -> None:
+        """将当前工作区导出到指定路径。
+
+        Args:
+            path: 目标文件路径。
+        """
         save_workspace_to_path(self.workspace, path)
 
     def _sync_gui_from_workspace(self) -> None:
@@ -533,7 +812,7 @@ class VgtrUiApp:
             self._show_control_group_checkbox.value = self.workspace.ui.show_control_group
         if self._edit_tools_folder is not None:
             self._edit_tools_folder.visible = self.workspace.ui.editing
-        
+
         # 同步物理滑块
         if self._k_slider is not None:
             self._k_slider.value = float(self.workspace.config.k)
@@ -549,9 +828,11 @@ class VgtrUiApp:
             self._gravity_toggle.value = self.workspace.config.gravity
 
     def _undo(self) -> None:
+        """执行撤销：恢复上一个历史快照并重建运行时模型。"""
         if not undo(self.workspace, self.history):
             self._set_file_status("Nothing to undo.", log_terminal=True)
             return
+        self._rebuild_runtime()
         self._drag_snapshot = None
         self._is_transform_dragging = False
         self._sync_gui_from_workspace()
@@ -559,9 +840,11 @@ class VgtrUiApp:
         self._set_file_status("Undo applied.", log_terminal=True)
 
     def _redo(self) -> None:
+        """执行重做：恢复下一个历史快照并重建运行时模型。"""
         if not redo(self.workspace, self.history):
             self._set_file_status("Nothing to redo.", log_terminal=True)
             return
+        self._rebuild_runtime()
         self._drag_snapshot = None
         self._is_transform_dragging = False
         self._sync_gui_from_workspace()
@@ -569,6 +852,11 @@ class VgtrUiApp:
         self._set_file_status("Redo applied.", log_terminal=True)
 
     def _should_step_simulation(self) -> bool:
+        """判断当前是否应当推进物理仿真。
+
+        Returns:
+            当仿真开启且非编辑模式，或在编辑模式下正在拖拽锚点/整体时为 True。
+        """
         if not self.workspace.ui.simulate:
             return False
         if not self.workspace.ui.editing:
@@ -585,10 +873,23 @@ class VgtrUiApp:
         n_c = self.workspace.script.num_channels
         sel_a = np.flatnonzero(self.workspace.ui.anchor_status == 2).tolist()
         sel_r = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
-        
+        step_count = self.data.step_count if self.data is not None else 0
+        sim_state = "running" if self.workspace.ui.simulate else "paused"
+        effective_hz = int(self.simulation_steps_per_second) if self.workspace.ui.simulate else 0
+        realtime_factor = self.simulation_steps_per_second * self.workspace.config.h
+        ctrl_summary = "[]"
+        if self.data is not None and self.data.ctrl_target.size:
+            ctrl_values = [round(float(v), 3) for v in self.data.ctrl_target[: min(4, self.data.ctrl_target.size)]]
+            ctrl_summary = f"{ctrl_values}"
+            if self.data.ctrl_target.size > 4:
+                ctrl_summary += f" +{self.data.ctrl_target.size - 4} more"
+
         self._status_markdown.content = (
-            f"**Stat:** A={n_a}, R={n_r}, CG={n_c} | **Step:** {self.workspace.physics.num_steps}  \n"
-            f"**Sel:** A={len(sel_a)} {sel_a if sel_a else ''}, R={len(sel_r)} {sel_r if sel_r else ''}"
+            f"**State:** {sim_state} | **Step:** {step_count} | **Rate:** {effective_hz} steps/s | "
+            f"**Realtime:** {realtime_factor:.2f}x  \n"
+            f"**Model:** A={n_a}, R={n_r}, CG={n_c} | **Ctrl Target:** {ctrl_summary}  \n"
+            f"**Selection:** A={len(sel_a)} {self._format_index_summary(sel_a)}, "
+            f"R={len(sel_r)} {self._format_index_summary(sel_r)}"
         )
 
 
@@ -604,12 +905,16 @@ def create_app(
         config_path=Path(config_path) if config_path is not None else None,
         example_path=Path(example_path),
     )
+    model = compile_workspace(workspace)
+    data = make_data(model)
     server = viser.ViserServer(host=host, port=port)
     renderer = SceneRenderer(server=server)
     return VgtrUiApp(
         server=server,
         workspace=workspace,
         renderer=renderer,
+        model=model,
+        data=data,
         current_config_path=Path(config_path) if config_path is not None else None,
         current_example_path=Path(example_path),
     )

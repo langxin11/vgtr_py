@@ -4,7 +4,9 @@ from types import SimpleNamespace
 import numpy as np
 
 from vgtr_py.config import default_config
-from vgtr_py.schema import WorkspaceFile, SiteFile, RodGroupFile
+from vgtr_py.data import make_data
+from vgtr_py.model import compile_workspace
+from vgtr_py.schema import RodGroupFile, SiteFile, WorkspaceFile
 from vgtr_py.ui import VgtrUiApp
 from vgtr_py.workspace import Workspace
 
@@ -21,8 +23,8 @@ def make_workspace() -> Workspace:
                 "s3": SiteFile(pos=[2.0, 0.0, 0.0]),
             },
             rod_groups=[
-                RodGroupFile(name="g1", site1="s1", site2="s2"),
-                RodGroupFile(name="g2", site1="s2", site2="s3"),
+                RodGroupFile(name="g1", site1="s1", site2="s2", actuated=True, rod_type="active"),
+                RodGroupFile(name="g2", site1="s2", site2="s3", actuated=True, rod_type="active"),
             ],
         ),
         default_config(),
@@ -146,3 +148,67 @@ def test_sync_gui_updates_edit_folder_visibility() -> None:
     assert app._editing_checkbox.value is True
     assert app._move_anchor_checkbox.value is True
     assert app._edit_tools_folder.visible is True
+
+
+def test_update_status_includes_runtime_summary() -> None:
+    workspace = make_workspace()
+    app = VgtrUiApp(server=SimpleNamespace(), workspace=workspace, renderer=SimpleNamespace())
+    app._status_markdown = SimpleNamespace(content="")
+    workspace.ui.simulate = True
+    workspace.ui.anchor_status[:] = np.asarray([2, 2, 2], dtype=np.int8)
+    workspace.ui.rod_group_status[:] = np.asarray([2, 2], dtype=np.int8)
+    assert app.data is not None
+    app.data.step_count = 12
+    app.data.ctrl_target[:] = np.asarray([0.1, 0.2], dtype=np.float64)
+
+    app._update_status()
+
+    assert "running" in app._status_markdown.content
+    assert "Step:** 12" in app._status_markdown.content
+    assert "Ctrl Target" in app._status_markdown.content
+
+
+def test_refresh_actuation_ui_per_rod_mode_builds_selected_rod_sliders() -> None:
+    class DummyFolder:
+        visible = True
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class DummySlider:
+        def __init__(self, value: float) -> None:
+            self.value = value
+            self._cb = None
+
+        def on_update(self, cb):
+            self._cb = cb
+            return cb
+
+        def remove(self) -> None:
+            return None
+
+    created_labels: list[str] = []
+
+    def add_slider(label: str, **kwargs):
+        created_labels.append(label)
+        return DummySlider(kwargs["initial_value"])
+
+    workspace = make_workspace()
+    workspace.ui.rod_group_status[:] = np.asarray([2, 0], dtype=np.int8)
+    app = VgtrUiApp(
+        server=SimpleNamespace(gui=SimpleNamespace(add_slider=add_slider)),
+        workspace=workspace,
+        renderer=SimpleNamespace(),
+    )
+    app.model = compile_workspace(workspace)
+    app.data = make_data(app.model)
+    app._actuation_folder = DummyFolder()
+    app._actuation_status_markdown = SimpleNamespace(content="")
+    app._actuation_mode_dropdown = SimpleNamespace(value="per-rod")
+
+    app._refresh_actuation_ui()
+
+    assert created_labels == ["Rod 0", "Rod 1"]
