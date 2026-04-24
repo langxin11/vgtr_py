@@ -86,6 +86,10 @@ class SceneRenderer:
     rod_r_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
     
     rod_hitbox_handles: dict[int, viser.CylinderHandle] = field(default_factory=dict)
+    batch_anchor_handles: dict[tuple[int, int], viser.IcosphereHandle] = field(default_factory=dict)
+    batch_sleeve_handles: dict[tuple[int, int], viser.CylinderHandle] = field(default_factory=dict)
+    batch_rod_l_handles: dict[tuple[int, int], viser.CylinderHandle] = field(default_factory=dict)
+    batch_rod_r_handles: dict[tuple[int, int], viser.CylinderHandle] = field(default_factory=dict)
     transform_handle: viser.TransformControlsHandle | None = None
     selected_drag_index: int | None = None
 
@@ -106,10 +110,53 @@ class SceneRenderer:
         Args:
             workspace: 当前工作区。
         """
+        self._clear_batch_handles()
         positions = workspace.topology.anchor_pos if anchor_pos is None else anchor_pos
         self._render_rod_groups(workspace, positions)
         self._render_anchors(workspace, positions)
         self._sync_transform_control(workspace)
+
+    def render_batch(
+        self,
+        workspace: Workspace,
+        *,
+        batch_anchor_pos: np.ndarray,
+        env_origins: np.ndarray | None = None,
+        selected_env: int = 0,
+        show_only_selected: bool = False,
+        spacing: float = 3.0,
+    ) -> None:
+        """在同一 Viser 场景中渲染多个同构仿真实例。
+
+        这是面向 ``VectorVGTREnv`` 的过渡版多实例渲染：每个 env 暂时创建独立
+        primitive handle，后续可升级为 Viser batched mesh handle。
+
+        Args:
+            workspace: 当前工作区。
+            batch_anchor_pos: 批量锚点位置，shape ``(num_envs, anchor_count, 3)``。
+            env_origins: 可选环境平铺偏移，shape ``(num_envs, 3)``。
+            selected_env: 当前选中的环境索引。
+            show_only_selected: 是否只显示选中环境。
+            spacing: 自动生成平铺偏移时的环境间距。
+        """
+        self._clear_single_handles()
+        positions = _as_batch_anchor_pos(batch_anchor_pos, workspace.topology.anchor_pos.shape[0])
+        num_envs = int(positions.shape[0])
+        if not 0 <= selected_env < num_envs:
+            raise ValueError(f"selected_env must be in [0, {num_envs - 1}], got {selected_env}")
+        origins = (
+            _grid_env_origins(num_envs, spacing=spacing)
+            if env_origins is None
+            else _as_env_origins(env_origins, num_envs)
+        )
+        displayed_positions = positions + origins[:, None, :]
+        visible_envs = {selected_env} if show_only_selected else set(range(num_envs))
+
+        self._render_batch_rod_visuals(workspace, displayed_positions, visible_envs)
+        self._render_batch_anchors(workspace, displayed_positions, visible_envs)
+        if self.transform_handle is not None:
+            self.transform_handle.visible = False
+        self.selected_drag_index = None
 
     def _render_rod_groups(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         """渲染并更新全部杆组。
@@ -204,6 +251,93 @@ class SceneRenderer:
                 h.radius = geometry.rod_radius
                 h.color = color
 
+    def _render_batch_rod_visuals(
+        self,
+        workspace: Workspace,
+        batch_anchor_pos: np.ndarray,
+        visible_envs: set[int],
+    ) -> None:
+        topology = workspace.topology
+        num_envs = int(batch_anchor_pos.shape[0])
+        current = {
+            (env_index, rod_index)
+            for env_index in range(num_envs)
+            for rod_index in range(topology.rod_anchors.shape[0])
+        }
+
+        for handles in [self.batch_sleeve_handles, self.batch_rod_l_handles, self.batch_rod_r_handles]:
+            for key in set(handles) - current:
+                handles.pop(key).remove()
+
+        for env_index in range(num_envs):
+            visible = env_index in visible_envs
+            for rod_index in range(topology.rod_anchors.shape[0]):
+                key = (env_index, rod_index)
+                pos_a = batch_anchor_pos[env_index, topology.rod_anchors[rod_index, 0]]
+                pos_b = batch_anchor_pos[env_index, topology.rod_anchors[rod_index, 1]]
+                midpoint = (pos_a + pos_b) / 2.0
+                direction = pos_b - pos_a
+                length = float(np.linalg.norm(direction))
+                wxyz = tuple(float(x) for x in _quaternion_from_z_axis(direction))
+                color = tuple(int(x) for x in _rod_color(workspace, rod_index))
+                geometry = _rod_visual_geometry(workspace, rod_index, current_length=length)
+                prefix = f"/world/envs/{env_index}/rod_vis/{rod_index}/sleeve"
+
+                if key not in self.batch_sleeve_handles:
+                    self.batch_sleeve_handles[key] = self.server.scene.add_cylinder(
+                        prefix,
+                        radius=geometry.sleeve_radius,
+                        height=geometry.sleeve_height,
+                        color=color,
+                        position=tuple(float(x) for x in midpoint),
+                        wxyz=wxyz,
+                        visible=visible,
+                    )
+                else:
+                    h = self.batch_sleeve_handles[key]
+                    h.position = tuple(float(x) for x in midpoint)
+                    h.wxyz = wxyz
+                    h.height = geometry.sleeve_height
+                    h.radius = geometry.sleeve_radius
+                    h.color = color
+                    h.visible = visible
+
+                if key not in self.batch_rod_l_handles:
+                    self.batch_rod_l_handles[key] = self.server.scene.add_cylinder(
+                        f"{prefix}/rod_l",
+                        radius=geometry.rod_radius,
+                        height=geometry.rod_height,
+                        color=color,
+                        position=geometry.rod_l_position,
+                        visible=visible,
+                    )
+                else:
+                    h = self.batch_rod_l_handles[key]
+                    h.position = geometry.rod_l_position
+                    h.wxyz = (1.0, 0.0, 0.0, 0.0)
+                    h.height = geometry.rod_height
+                    h.radius = geometry.rod_radius
+                    h.color = color
+                    h.visible = visible
+
+                if key not in self.batch_rod_r_handles:
+                    self.batch_rod_r_handles[key] = self.server.scene.add_cylinder(
+                        f"{prefix}/rod_r",
+                        radius=geometry.rod_radius,
+                        height=geometry.rod_height,
+                        color=color,
+                        position=geometry.rod_r_position,
+                        visible=visible,
+                    )
+                else:
+                    h = self.batch_rod_r_handles[key]
+                    h.position = geometry.rod_r_position
+                    h.wxyz = (1.0, 0.0, 0.0, 0.0)
+                    h.height = geometry.rod_height
+                    h.radius = geometry.rod_radius
+                    h.color = color
+                    h.visible = visible
+
     def _render_anchors(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         """渲染锚点为主体球形。
 
@@ -236,6 +370,43 @@ class SceneRenderer:
                 handle = self.anchor_handles[index]
                 handle.position = position
                 handle.color = color
+
+    def _render_batch_anchors(
+        self,
+        workspace: Workspace,
+        batch_anchor_pos: np.ndarray,
+        visible_envs: set[int],
+    ) -> None:
+        topology = workspace.topology
+        num_envs = int(batch_anchor_pos.shape[0])
+        current = {
+            (env_index, anchor_index)
+            for env_index in range(num_envs)
+            for anchor_index in range(topology.anchor_pos.shape[0])
+        }
+
+        for key in set(self.batch_anchor_handles) - current:
+            self.batch_anchor_handles.pop(key).remove()
+
+        for env_index in range(num_envs):
+            visible = env_index in visible_envs
+            for anchor_index in range(topology.anchor_pos.shape[0]):
+                key = (env_index, anchor_index)
+                position = tuple(float(x) for x in batch_anchor_pos[env_index, anchor_index])
+                color = tuple(int(x) for x in _anchor_color(workspace, anchor_index))
+                if key not in self.batch_anchor_handles:
+                    self.batch_anchor_handles[key] = self.server.scene.add_icosphere(
+                        f"/world/envs/{env_index}/anchors/v_{anchor_index}",
+                        radius=ANCHOR_RADIUS,
+                        color=color,
+                        position=position,
+                        visible=visible,
+                    )
+                else:
+                    handle = self.batch_anchor_handles[key]
+                    handle.position = position
+                    handle.color = color
+                    handle.visible = visible
 
     def _render_rod_hitboxes(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         """同步杆组拾取代理，提升点击稳定性。
@@ -353,6 +524,31 @@ class SceneRenderer:
             def _on_drag_end(_event: viser.TransformControlsEvent) -> None:
                 drag_end()
 
+    def _clear_single_handles(self) -> None:
+        """移除单实例渲染句柄。"""
+        for handles in [
+            self.anchor_handles,
+            self.sleeve_handles,
+            self.rod_l_handles,
+            self.rod_r_handles,
+            self.rod_hitbox_handles,
+        ]:
+            for handle in handles.values():
+                handle.remove()
+            handles.clear()
+
+    def _clear_batch_handles(self) -> None:
+        """移除批量渲染句柄。"""
+        for handles in [
+            self.batch_anchor_handles,
+            self.batch_sleeve_handles,
+            self.batch_rod_l_handles,
+            self.batch_rod_r_handles,
+        ]:
+            for handle in handles.values():
+                handle.remove()
+            handles.clear()
+
 
 def _anchor_color(workspace: Workspace, index: int) -> np.ndarray:
     """按锚点状态返回显示颜色。
@@ -372,6 +568,40 @@ def _anchor_color(workspace: Workspace, index: int) -> np.ndarray:
     if workspace.topology.anchor_fixed[index]:
         return CYAN
     return WHITE
+
+
+def _as_batch_anchor_pos(batch_anchor_pos: np.ndarray, anchor_count: int) -> np.ndarray:
+    """校验并返回批量锚点位置数组。"""
+    positions = np.asarray(batch_anchor_pos, dtype=np.float64)
+    if positions.ndim != 3 or positions.shape[1:] != (anchor_count, 3):
+        raise ValueError(
+            "batch_anchor_pos must have shape "
+            f"(num_envs, {anchor_count}, 3), got {positions.shape}"
+        )
+    if positions.shape[0] <= 0:
+        raise ValueError("batch_anchor_pos must contain at least one environment")
+    return positions
+
+
+def _as_env_origins(env_origins: np.ndarray, num_envs: int) -> np.ndarray:
+    """校验并返回环境平铺偏移。"""
+    origins = np.asarray(env_origins, dtype=np.float64)
+    if origins.shape != (num_envs, 3):
+        raise ValueError(f"env_origins must have shape ({num_envs}, 3), got {origins.shape}")
+    return origins
+
+
+def _grid_env_origins(num_envs: int, *, spacing: float = 3.0) -> np.ndarray:
+    """按二维网格生成环境平铺偏移。"""
+    if num_envs <= 0:
+        raise ValueError(f"num_envs must be positive, got {num_envs}")
+    cols = int(np.ceil(np.sqrt(num_envs)))
+    origins = np.zeros((num_envs, 3), dtype=np.float64)
+    for env_index in range(num_envs):
+        row, col = divmod(env_index, cols)
+        origins[env_index, 0] = float(col) * spacing
+        origins[env_index, 1] = float(row) * spacing
+    return origins
 
 
 def _rod_color(workspace: Workspace, index: int) -> np.ndarray:

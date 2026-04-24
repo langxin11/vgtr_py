@@ -6,22 +6,42 @@
 import numpy as np
 
 from vgtr_py.config import default_config
-from vgtr_py.rendering import SceneRenderer, _quaternion_from_z_axis, _rod_visual_geometry
+from vgtr_py.rendering import (
+    SceneRenderer,
+    _grid_env_origins,
+    _quaternion_from_z_axis,
+    _rod_visual_geometry,
+)
 from vgtr_py.schema import RodGroupFile, SiteFile, WorkspaceFile
 from vgtr_py.workspace import Workspace
 
 
-class DummyCylinderHandle:
-    pass
+class DummyHandle:
+    def __init__(self, **kwargs: object) -> None:
+        self.removed = False
+        self.visible = bool(kwargs.get("visible", True))
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def remove(self) -> None:
+        self.removed = True
+
+    def on_click(self, _callback: object) -> None:
+        pass
 
 
 class DummyScene:
     def __init__(self) -> None:
         self.cylinders: list[tuple[str, dict[str, object]]] = []
+        self.icospheres: list[tuple[str, dict[str, object]]] = []
 
-    def add_cylinder(self, name: str, **kwargs: object) -> DummyCylinderHandle:
+    def add_cylinder(self, name: str, **kwargs: object) -> DummyHandle:
         self.cylinders.append((name, kwargs))
-        return DummyCylinderHandle()
+        return DummyHandle(**kwargs)
+
+    def add_icosphere(self, name: str, **kwargs: object) -> DummyHandle:
+        self.icospheres.append((name, kwargs))
+        return DummyHandle(**kwargs)
 
 
 class DummyServer:
@@ -130,3 +150,77 @@ def test_rod_visuals_create_rods_as_sleeve_children() -> None:
         "/world/rod_vis/0/sleeve/rod_l",
         "/world/rod_vis/0/sleeve/rod_r",
     ]
+
+
+def test_grid_env_origins_tiles_envs_on_xy_grid() -> None:
+    origins = _grid_env_origins(4, spacing=2.5)
+
+    np.testing.assert_allclose(
+        origins,
+        np.asarray(
+            [
+                [0.0, 0.0, 0.0],
+                [2.5, 0.0, 0.0],
+                [0.0, 2.5, 0.0],
+                [2.5, 2.5, 0.0],
+            ]
+        ),
+    )
+
+
+def test_render_batch_creates_env_prefixed_three_part_rods_and_anchors() -> None:
+    workspace = make_render_workspace()
+    server = DummyServer()
+    renderer = SceneRenderer(server=server)  # type: ignore[arg-type]
+    batch_anchor_pos = np.stack(
+        [
+            workspace.topology.anchor_pos,
+            workspace.topology.anchor_pos + np.asarray([0.0, 0.0, 0.5]),
+        ]
+    )
+
+    renderer.render_batch(
+        workspace,
+        batch_anchor_pos=batch_anchor_pos,
+        env_origins=np.asarray([[0.0, 0.0, 0.0], [3.0, 0.0, 0.0]]),
+    )
+
+    cylinder_names = [name for name, _kwargs in server.scene.cylinders]
+    assert cylinder_names == [
+        "/world/envs/0/rod_vis/0/sleeve",
+        "/world/envs/0/rod_vis/0/sleeve/rod_l",
+        "/world/envs/0/rod_vis/0/sleeve/rod_r",
+        "/world/envs/1/rod_vis/0/sleeve",
+        "/world/envs/1/rod_vis/0/sleeve/rod_l",
+        "/world/envs/1/rod_vis/0/sleeve/rod_r",
+    ]
+    icosphere_names = [name for name, _kwargs in server.scene.icospheres]
+    assert icosphere_names == [
+        "/world/envs/0/anchors/v_0",
+        "/world/envs/0/anchors/v_1",
+        "/world/envs/1/anchors/v_0",
+        "/world/envs/1/anchors/v_1",
+    ]
+    np.testing.assert_allclose(
+        renderer.batch_anchor_handles[(1, 0)].position,
+        (3.0, 0.0, 0.5),
+    )
+
+
+def test_render_batch_can_hide_non_selected_envs() -> None:
+    workspace = make_render_workspace()
+    server = DummyServer()
+    renderer = SceneRenderer(server=server)  # type: ignore[arg-type]
+    batch_anchor_pos = np.stack([workspace.topology.anchor_pos, workspace.topology.anchor_pos])
+
+    renderer.render_batch(
+        workspace,
+        batch_anchor_pos=batch_anchor_pos,
+        selected_env=1,
+        show_only_selected=True,
+    )
+
+    assert renderer.batch_anchor_handles[(0, 0)].visible is False
+    assert renderer.batch_anchor_handles[(1, 0)].visible is True
+    assert renderer.batch_sleeve_handles[(0, 0)].visible is False
+    assert renderer.batch_sleeve_handles[(1, 0)].visible is True
