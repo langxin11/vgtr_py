@@ -1,7 +1,7 @@
 """配置与系统参数模块。
 
 统一提供：
-- 纯 Python 配置入口（RobotConfig / SimulationConfig / AnchorConfig / RodGroupConfig）
+- 纯 Python 配置入口（SimulationConfig / RobotConfig / AnchorConfig / RodGroupConfig）
 - JSON 仿真参数覆盖读取（load_config）
 """
 
@@ -95,10 +95,8 @@ class RodGroupConfig:
 
 @dataclass(slots=True)
 class RobotConfig:
-    """机器人默认配置集合。"""
+    """机器人默认几何与质量参数集合。"""
 
-    # 仿真参数。
-    simulation: SimulationConfig = field(default_factory=SimulationConfig)
     # 锚点几何与质量参数。
     anchor: AnchorConfig = field(default_factory=AnchorConfig)
     # 杆组几何与长度约束参数。

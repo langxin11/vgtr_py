@@ -21,16 +21,30 @@ class WorkspaceHistory:
     _redo_stack: list[WorkspaceSnapshot] = field(default_factory=list)
 
     def clear(self) -> None:
+        """清空撤销与重做栈。"""
         self._undo_stack.clear()
         self._redo_stack.clear()
 
     def push(self, snapshot: WorkspaceSnapshot) -> None:
+        """压入新快照到撤销栈，并清空重做栈。
+
+        Args:
+            snapshot: 当前工作区快照。
+        """
         self._undo_stack.append(snapshot)
         if len(self._undo_stack) > self.max_entries:
             self._undo_stack.pop(0)
         self._redo_stack.clear()
 
     def undo(self, workspace: Workspace) -> bool:
+        """执行撤销操作。
+
+        Args:
+            workspace: 当前工作区。
+
+        Returns:
+            是否成功撤销。
+        """
         if not self._undo_stack:
             return False
         current = workspace.snapshot()
@@ -39,6 +53,14 @@ class WorkspaceHistory:
         return True
 
     def redo(self, workspace: Workspace) -> bool:
+        """执行重做操作。
+
+        Args:
+            workspace: 当前工作区。
+
+        Returns:
+            是否成功重做。
+        """
         if not self._redo_stack:
             return False
         current = workspace.snapshot()
@@ -48,18 +70,22 @@ class WorkspaceHistory:
 
     @property
     def can_undo(self) -> bool:
+        """是否可以撤销。"""
         return bool(self._undo_stack)
 
     @property
     def can_redo(self) -> bool:
+        """是否可以重做。"""
         return bool(self._redo_stack)
 
     @property
     def undo_stack_size(self) -> int:
+        """撤销栈当前深度。"""
         return len(self._undo_stack)
 
     @property
     def redo_stack_size(self) -> int:
+        """重做栈当前深度。"""
         return len(self._redo_stack)
 
 
@@ -69,6 +95,9 @@ def snapshots_equal(left: WorkspaceSnapshot, right: WorkspaceSnapshot) -> bool:
         np.array_equal(left.topology.anchor_pos, right.topology.anchor_pos)
         and np.array_equal(left.topology.rod_anchors, right.topology.rod_anchors)
         and np.array_equal(left.topology.anchor_fixed, right.topology.anchor_fixed)
+        and np.array_equal(
+            left.topology.anchor_projection_target, right.topology.anchor_projection_target
+        )
         and np.array_equal(left.topology.rod_rest_length, right.topology.rod_rest_length)
         and np.array_equal(left.topology.rod_min_length, right.topology.rod_min_length)
         and np.array_equal(left.topology.rod_control_group, right.topology.rod_control_group)
@@ -77,20 +106,16 @@ def snapshots_equal(left: WorkspaceSnapshot, right: WorkspaceSnapshot) -> bool:
         and np.array_equal(left.topology.rod_group_mass, right.topology.rod_group_mass)
         and np.array_equal(left.topology.rod_radius, right.topology.rod_radius)
         and np.array_equal(left.topology.rod_sleeve_half, right.topology.rod_sleeve_half)
+        and np.array_equal(left.topology.rod_type, right.topology.rod_type)
+        and np.array_equal(left.topology.rod_length_limits, right.topology.rod_length_limits)
+        and np.array_equal(left.topology.rod_force_limits, right.topology.rod_force_limits)
         and np.array_equal(left.physics.v0, right.physics.v0)
-        and np.array_equal(left.physics.velocities, right.physics.velocities)
-        and np.array_equal(left.physics.forces, right.physics.forces)
-        and np.array_equal(left.physics.lengths, right.physics.lengths)
-        and np.array_equal(left.physics.control_group_target, right.physics.control_group_target)
-        and np.array_equal(left.physics.control_group_value, right.physics.control_group_value)
-        and left.physics.num_steps == right.physics.num_steps
-        and left.physics.i_action == right.physics.i_action
-        and left.physics.i_action_prev == right.physics.i_action_prev
-        and left.physics.record_frames == right.physics.record_frames
-        and left.physics.frames == right.physics.frames
         and np.array_equal(left.script.script, right.script.script)
         and left.script.num_channels == right.script.num_channels
         and left.script.num_actions == right.script.num_actions
+        and np.array_equal(
+            left.script.control_group_default_target, right.script.control_group_default_target
+        )
         and np.array_equal(left.ui.anchor_status, right.ui.anchor_status)
         and np.array_equal(left.ui.rod_group_status, right.ui.rod_group_status)
         and np.array_equal(left.ui.face_status, right.ui.face_status)

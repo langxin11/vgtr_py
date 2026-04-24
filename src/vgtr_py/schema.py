@@ -15,17 +15,22 @@ class SiteFile(msgspec.Struct, kw_only=True, omit_defaults=True):
     """变几何桁架格式中的锚点定义。"""
 
     pos: list[float]
+    description: str | None = None
     radius: float | None = None
     fixed: bool | int | None = None
     mass: float | None = None
+    projection_target: bool | int = False
+    metadata: dict[str, Any] | None = None
 
 
 class RodGroupFile(msgspec.Struct, kw_only=True, omit_defaults=True):
     """变几何桁架格式中的杆组定义。"""
 
     name: str
+    description: str | None = None
     site1: str
     site2: str
+    rod_type: str | None = None
     actuated: bool | int = False
     enabled: bool | int = True
     control_group: str | None = None
@@ -36,32 +41,50 @@ class RodGroupFile(msgspec.Struct, kw_only=True, omit_defaults=True):
     rest_length: float | None = None
     min_length: float | None = None
     max_contraction: float | None = None
+    length_limits: list[float] = msgspec.field(default_factory=list)
+    force_limits: list[float] = msgspec.field(default_factory=list)
+    metadata: dict[str, Any] | None = None
 
 
 class ControlGroupFile(msgspec.Struct, kw_only=True, omit_defaults=True):
     """控制组定义。"""
 
     name: str
+    description: str | None = None
     color: list[float] = msgspec.field(default_factory=list)
     default_target: float | None = None
     enabled: bool | int = True
+    metadata: dict[str, Any] | None = None
 
 
 class WorkspaceFile(msgspec.Struct, kw_only=True, omit_defaults=True):
     """变几何桁架机器人工作区主格式。"""
 
+    description: str | None = None
     sites: dict[str, SiteFile]
     rod_groups: list[RodGroupFile]
     control_groups: list[ControlGroupFile] = msgspec.field(default_factory=list)
     script: list[list[bool | int | float]] = msgspec.field(default_factory=list)
     num_actions: int | None = msgspec.field(default=None, name="numActions")
     anchor_frames: list[list[list[float]]] = msgspec.field(default_factory=list)
+    metadata: dict[str, Any] | None = None
 
 
 WorkspaceFileData = WorkspaceFile
 
 
 def _decode_json_object(raw: bytes | str) -> dict[str, Any]:
+    """将原始 JSON 解码为字典对象。
+
+    Args:
+        raw: JSON 字节串或字符串。
+
+    Returns:
+        解码后的字典。
+
+    Raises:
+        TypeError: 若解码结果不是字典。
+    """
     decoded = msgspec.json.decode(raw)
     if not isinstance(decoded, dict):
         raise TypeError("workspace file must decode to a JSON object")

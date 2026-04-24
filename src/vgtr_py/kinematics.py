@@ -17,7 +17,17 @@ FloatArray = NDArray[np.float64]
 
 @dataclass(slots=True)
 class RodKinematics:
-    """杆组派生几何。"""
+    """杆组派生几何。
+
+    Attributes:
+        direction: 杆组方向单位向量，shape (R, 3)。
+        anchor_distance: 两端锚点间距，shape (R,)。
+        midpoint: 杆组中点坐标，shape (R, 3)。
+        shared_slide_q: 套筒内杆件滑动量，shape (R,)。
+        sleeve_pose: 套筒位姿（位置 + 四元数 wxyz），shape (R, 7)。
+        left_tip_pos: 左端锚点位置，shape (R, 3)。
+        right_tip_pos: 右端锚点位置，shape (R, 3)。
+    """
 
     direction: FloatArray
     anchor_distance: FloatArray

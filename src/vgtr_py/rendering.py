@@ -38,6 +38,27 @@ CYAN = np.array([51, 153, 153], dtype=np.uint8)
 
 
 @dataclass
+class RodVisualGeometry:
+    """单杆套筒相对活塞渲染的局部几何参数。
+
+    Attributes:
+        sleeve_radius: 套筒半径。
+        sleeve_height: 套筒高度。
+        rod_radius: 活塞杆半径。
+        rod_height: 活塞杆高度。
+        rod_l_position: 左端活塞杆局部位置。
+        rod_r_position: 右端活塞杆局部位置。
+    """
+
+    sleeve_radius: float
+    sleeve_height: float
+    rod_radius: float
+    rod_height: float
+    rod_l_position: tuple[float, float, float]
+    rod_r_position: tuple[float, float, float]
+
+
+@dataclass
 class SceneRenderer:
     """负责将工作区状态渲染到 Viser 场景。
 
@@ -79,17 +100,18 @@ class SceneRenderer:
             plane="xy",
         )
 
-    def render(self, workspace: Workspace) -> None:
+    def render(self, workspace: Workspace, *, anchor_pos: np.ndarray | None = None) -> None:
         """刷新杆组、锚点和变换控件状态。
 
         Args:
             workspace: 当前工作区。
         """
-        self._render_rod_groups(workspace)
-        self._render_anchors(workspace)
+        positions = workspace.topology.anchor_pos if anchor_pos is None else anchor_pos
+        self._render_rod_groups(workspace, positions)
+        self._render_anchors(workspace, positions)
         self._sync_transform_control(workspace)
 
-    def _render_rod_groups(self, workspace: Workspace) -> None:
+    def _render_rod_groups(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         """渲染并更新全部杆组。
 
         Args:
@@ -104,12 +126,11 @@ class SceneRenderer:
                 dic.clear()
             return
 
-        self._render_rod_visuals(workspace)
-        self._render_rod_hitboxes(workspace)
+        self._render_rod_visuals(workspace, anchor_pos)
+        self._render_rod_hitboxes(workspace, anchor_pos)
 
-    def _render_rod_visuals(self, workspace: Workspace) -> None:
+    def _render_rod_visuals(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         topology = workspace.topology
-        robot = workspace.robot_config
         existing = set(self.sleeve_handles)
         current = set(range(topology.rod_anchors.shape[0]))
 
@@ -121,25 +142,22 @@ class SceneRenderer:
 
         # 更新或创建新句柄
         for index in current:
-            # 1. 基础几何计算
-            pos_a = topology.anchor_pos[topology.rod_anchors[index, 0]]
-            pos_b = topology.anchor_pos[topology.rod_anchors[index, 1]]
+            # 1. 基础几何计算：套筒是父 frame，左右杆在套筒局部 Z 轴上滑动。
+            pos_a = anchor_pos[topology.rod_anchors[index, 0]]
+            pos_b = anchor_pos[topology.rod_anchors[index, 1]]
             midpoint = (pos_a + pos_b) / 2.0
             direction = pos_b - pos_a
             length = float(np.linalg.norm(direction))
             wxyz = tuple(float(x) for x in _quaternion_from_z_axis(direction))
             color = tuple(int(x) for x in _rod_color(workspace, index))
-            
-            # 套筒长度：取初始/当前长度的 30% 或配置值
-            sleeve_ratio = robot.rod_group.sleeve_display_half_length_ratio
-            sleeve_len = length * sleeve_ratio * 2.0
+            geometry = _rod_visual_geometry(workspace, index, current_length=length)
             
             # 2. 渲染 Sleeve (中段套筒)
             if index not in self.sleeve_handles:
                 self.sleeve_handles[index] = self.server.scene.add_cylinder(
                     f"/world/rod_vis/{index}/sleeve",
-                    radius=ROD_RADIUS * 1.8, # 套筒略粗
-                    height=max(sleeve_len, 1e-4),
+                    radius=geometry.sleeve_radius,
+                    height=geometry.sleeve_height,
                     color=color,
                     position=tuple(float(x) for x in midpoint),
                     wxyz=wxyz,
@@ -148,48 +166,45 @@ class SceneRenderer:
                 h = self.sleeve_handles[index]
                 h.position = tuple(float(x) for x in midpoint)
                 h.wxyz = wxyz
-                h.height = max(sleeve_len, 1e-4)
+                h.height = geometry.sleeve_height
+                h.radius = geometry.sleeve_radius
                 h.color = color
 
-            # 3. 渲染 Rod Left (左杆: A -> Mid)
-            len_l = length / 2.0
-            pos_l = (pos_a + midpoint) / 2.0
+            # 3. 渲染 Rod Left：作为 sleeve 的子节点，局部 -Z 方向滑动。
             if index not in self.rod_l_handles:
                 self.rod_l_handles[index] = self.server.scene.add_cylinder(
-                    f"/world/rod_vis/{index}/rod_l",
-                    radius=ROD_RADIUS,
-                    height=max(len_l, 1e-4),
+                    f"/world/rod_vis/{index}/sleeve/rod_l",
+                    radius=geometry.rod_radius,
+                    height=geometry.rod_height,
                     color=color,
-                    position=tuple(float(x) for x in pos_l),
-                    wxyz=wxyz,
+                    position=geometry.rod_l_position,
                 )
             else:
                 h = self.rod_l_handles[index]
-                h.position = tuple(float(x) for x in pos_l)
-                h.wxyz = wxyz
-                h.height = max(len_l, 1e-4)
+                h.position = geometry.rod_l_position
+                h.wxyz = (1.0, 0.0, 0.0, 0.0)
+                h.height = geometry.rod_height
+                h.radius = geometry.rod_radius
                 h.color = color
 
-            # 4. 渲染 Rod Right (右杆: B -> Mid)
-            len_r = length / 2.0
-            pos_r = (pos_b + midpoint) / 2.0
+            # 4. 渲染 Rod Right：作为 sleeve 的子节点，局部 +Z 方向滑动。
             if index not in self.rod_r_handles:
                 self.rod_r_handles[index] = self.server.scene.add_cylinder(
-                    f"/world/rod_vis/{index}/rod_r",
-                    radius=ROD_RADIUS,
-                    height=max(len_r, 1e-4),
+                    f"/world/rod_vis/{index}/sleeve/rod_r",
+                    radius=geometry.rod_radius,
+                    height=geometry.rod_height,
                     color=color,
-                    position=tuple(float(x) for x in pos_r),
-                    wxyz=wxyz,
+                    position=geometry.rod_r_position,
                 )
             else:
                 h = self.rod_r_handles[index]
-                h.position = tuple(float(x) for x in pos_r)
-                h.wxyz = wxyz
-                h.height = max(len_r, 1e-4)
+                h.position = geometry.rod_r_position
+                h.wxyz = (1.0, 0.0, 0.0, 0.0)
+                h.height = geometry.rod_height
+                h.radius = geometry.rod_radius
                 h.color = color
 
-    def _render_anchors(self, workspace: Workspace) -> None:
+    def _render_anchors(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         """渲染锚点为主体球形。
 
         Args:
@@ -203,7 +218,7 @@ class SceneRenderer:
             self.anchor_handles.pop(index).remove()
 
         for index in current:
-            position = tuple(float(x) for x in topology.anchor_pos[index])
+            position = tuple(float(x) for x in anchor_pos[index])
             color = tuple(int(x) for x in _anchor_color(workspace, index))
             if index not in self.anchor_handles:
                 handle = self.server.scene.add_icosphere(
@@ -222,7 +237,7 @@ class SceneRenderer:
                 handle.position = position
                 handle.color = color
 
-    def _render_rod_hitboxes(self, workspace: Workspace) -> None:
+    def _render_rod_hitboxes(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         """同步杆组拾取代理，提升点击稳定性。
 
         Args:
@@ -242,8 +257,8 @@ class SceneRenderer:
             self.rod_hitbox_handles.pop(index).remove()
 
         for index in current:
-            start = topology.anchor_pos[topology.rod_anchors[index, 0]]
-            end = topology.anchor_pos[topology.rod_anchors[index, 1]]
+            start = anchor_pos[topology.rod_anchors[index, 0]]
+            end = anchor_pos[topology.rod_anchors[index, 1]]
             midpoint = tuple(float(x) for x in (start + end) / 2.0)
             direction = end - start
             length = float(np.linalg.norm(direction))
@@ -381,6 +396,63 @@ def _rod_color(workspace: Workspace, index: int) -> np.ndarray:
             return colors[control_group]
         return CHANNEL_COLORS[control_group % len(CHANNEL_COLORS)]
     return BLACK if workspace.topology.rod_enabled[index] else WHITE
+
+
+def _rod_visual_geometry(
+    workspace: Workspace,
+    index: int,
+    *,
+    current_length: float,
+) -> RodVisualGeometry:
+    """计算单杆组的套筒局部活塞几何。
+
+    套筒始终保持在两端锚点中间。最小执行器长度 ``L_min`` 为视觉收拢基准：
+    当杆长为 ``L_min`` 时，每根活塞杆从锚点延伸至套筒中心。
+    若锚点间距相对 ``L_min`` 增加 ``dx``，则每根活塞杆中心相对套筒平移 ``dx / 2``。
+
+    Args:
+        workspace: 当前工作区。
+        index: 杆组索引。
+        current_length: 当前杆长。
+
+    Returns:
+        该杆组的局部渲染几何参数。
+    """
+    topology = workspace.topology
+    robot = workspace.robot_config
+
+    base_length = float(topology.rod_min_length[index])
+    if topology.rod_length_limits.shape[0] > index:
+        base_length = float(topology.rod_length_limits[index, 0])
+    if base_length <= 1e-9:
+        base_length = max(float(topology.rod_rest_length[index]), float(current_length), 1e-9)
+
+    rod_radius = (
+        float(topology.rod_radius[index])
+        if topology.rod_radius.shape[0] > index
+        else float(robot.rod_group.rod_radius)
+    )
+    sleeve_radius = float(robot.rod_group.sleeve_radius)
+    sleeve_ratio = float(robot.rod_group.sleeve_display_half_length_ratio)
+    if topology.rod_sleeve_half.shape[0] > index:
+        sleeve_radius = float(topology.rod_sleeve_half[index, 0])
+        sleeve_ratio = float(topology.rod_sleeve_half[index, 2])
+
+    sleeve_ratio = float(np.clip(sleeve_ratio, 0.0, 0.5))
+    sleeve_height = max(base_length * sleeve_ratio * 2.0, 1e-4)
+    rod_height = max(base_length * 0.5, 1e-4)
+
+    slide = (float(current_length) - base_length) * 0.5
+    center_offset = base_length * 0.25 + slide
+
+    return RodVisualGeometry(
+        sleeve_radius=max(sleeve_radius, 1e-6),
+        sleeve_height=sleeve_height,
+        rod_radius=max(rod_radius, 1e-6),
+        rod_height=rod_height,
+        rod_l_position=(0.0, 0.0, -center_offset),
+        rod_r_position=(0.0, 0.0, center_offset),
+    )
 
 
 def _quaternion_from_z_axis(direction: np.ndarray) -> np.ndarray:

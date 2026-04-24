@@ -29,7 +29,7 @@ EXAMPLE_OPTION = typer.Option(
 
 @cli.command()
 def plan() -> None:
-    """Print the location of the implementation plan."""
+    """输出实现计划文档路径。"""
     project_root = Path(__file__).resolve().parents[2]
     typer.echo(project_root / "docs" / "implementation-plan.md")
 
@@ -41,7 +41,7 @@ def serve(
     host: str = "0.0.0.0",
     port: int = 8080,
 ) -> None:
-    """Start the minimal Viser-based VGTR viewer."""
+    """启动基于 Viser 的 VGTR 交互式查看器。"""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

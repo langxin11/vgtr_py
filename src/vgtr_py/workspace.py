@@ -83,6 +83,22 @@ def _empty_float3() -> FloatArray:
     return np.zeros((0, 3), dtype=np.float64)
 
 
+def _empty_float2() -> FloatArray:
+    """创建一个空的二维浮点数组，形状为(0, 2)。"""
+    return np.zeros((0, 2), dtype=np.float64)
+
+
+ROD_TYPE_PASSIVE = 0
+ROD_TYPE_ACTIVE = 1
+ROD_TYPE_ELASTIC = 2
+_ROD_TYPE_BY_NAME = {
+    "passive": ROD_TYPE_PASSIVE,
+    "active": ROD_TYPE_ACTIVE,
+    "elastic": ROD_TYPE_ELASTIC,
+}
+_ROD_TYPE_NAME_BY_ID = {value: key for key, value in _ROD_TYPE_BY_NAME.items()}
+
+
 @dataclass(slots=True)
 class TopologyState:
     """
@@ -94,6 +110,7 @@ class TopologyState:
     anchor_fixed: BoolArray             # 锚点是否固定，形状 (anchor_count,)
     anchor_mass: FloatArray             # 锚点质量，形状 (anchor_count,)
     anchor_radius: FloatArray           # 锚点半径，形状 (anchor_count,)
+    anchor_projection_target: BoolArray # 是否作为投影控制目标，形状 (anchor_count,)
     rod_group_ids: list[str]            # 杆组ID列表，顺序与rod_anchors等数组索引一致
     rod_anchors: IntArray               # 每根杆连接的两个锚点索引，形状 (rod_count, 2)
     rod_rest_length: FloatArray         # 杆初始（静止）长度，形状 (rod_count,)
@@ -104,24 +121,17 @@ class TopologyState:
     rod_group_mass: FloatArray          # 杆组质量，形状 (rod_count,)
     rod_radius: FloatArray              # 杆半径，形状 (rod_count,)
     rod_sleeve_half: FloatArray         # 杆套筒半长，形状 (rod_count, 3)
+    rod_type: IntArray                  # 杆件类型，形状 (rod_count,)
+    rod_length_limits: FloatArray       # 杆件长度限制，形状 (rod_count, 2)
+    rod_force_limits: FloatArray        # 杆件出力限制，形状 (rod_count, 2)
 
 @dataclass(slots=True)
 class PhysicsState:
     """
-    锚点级物理与运行时状态。
-    保存仿真过程中所有动态物理量，便于状态更新、快照和恢复。
+    锚点级物理与运行时状态（现仅作为初始状态缓存）。
+    保存拖拽等操作前锚点的初始位置，用于撤销和状态恢复。
     """
     v0: FloatArray          # 锚点初始位置，形状 (anchor_count, 3)，用于重置/回放
-    velocities: FloatArray  # 锚点速度，形状 (anchor_count, 3)
-    forces: FloatArray      # 锚点受力，形状 (anchor_count, 3)
-    lengths: FloatArray     # 各杆当前长度，形状 (rod_count,)
-    control_group_target: FloatArray  # 控制组目标值，形状 (num_control_groups,)
-    control_group_value: FloatArray   # 控制组当前值，形状 (num_control_groups,)
-    num_steps: int = 0                # 仿真步数计数器
-    i_action: int = 0                 # 当前动作索引（用于脚本）
-    i_action_prev: int = 0            # 上一步动作索引
-    record_frames: bool = False       # 是否记录仿真帧
-    frames: list[list[list[float]]] | None = None  # 仿真帧序列（用于回放/导出）
 
 @dataclass(slots=True)
 class ScriptState:
@@ -135,6 +145,7 @@ class ScriptState:
     control_group_ids: list[str] = field(default_factory=list)  # 控制组ID列表
     control_group_colors: UInt8Array = field(default_factory=_empty_colors)  # 控制组颜色 (num_channels, 3)
     control_group_enabled: BoolArray = field(default_factory=_empty_bools)  # 控制组使能状态 (num_channels,)
+    control_group_default_target: FloatArray = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
 
 @dataclass(slots=True)
 class UiState:
@@ -222,9 +233,31 @@ class Workspace:
             [workspace_file.sites[anchor_id].pos for anchor_id in anchor_ids],
             dtype=np.float64,
         )
-        anchor_fixed = np.zeros(anchor_count, dtype=np.bool_)
-        anchor_mass = np.full(anchor_count, float(robot.anchor.mass), dtype=np.float64)
-        anchor_radius = np.full(anchor_count, float(robot.anchor.radius), dtype=np.float64)
+        anchor_fixed = np.asarray(
+            [bool(workspace_file.sites[anchor_id].fixed) for anchor_id in anchor_ids],
+            dtype=np.bool_,
+        )
+        anchor_mass = np.asarray(
+            [
+                float(workspace_file.sites[anchor_id].mass or robot.anchor.mass)
+                for anchor_id in anchor_ids
+            ],
+            dtype=np.float64,
+        )
+        anchor_radius = np.asarray(
+            [
+                float(workspace_file.sites[anchor_id].radius or robot.anchor.radius)
+                for anchor_id in anchor_ids
+            ],
+            dtype=np.float64,
+        )
+        anchor_projection_target = np.asarray(
+            [
+                bool(workspace_file.sites[anchor_id].projection_target)
+                for anchor_id in anchor_ids
+            ],
+            dtype=np.bool_,
+        )
 
         control_groups = _normalized_control_groups(workspace_file)
         control_group_ids = [group.name for group in control_groups]
@@ -238,6 +271,9 @@ class Workspace:
         rod_enabled = np.ones(len(workspace_file.rod_groups), dtype=np.bool_)
         rod_actuated = np.ones(len(workspace_file.rod_groups), dtype=np.bool_)
         rod_group_mass = np.ones(len(workspace_file.rod_groups), dtype=np.float64)
+        rod_type = np.full(len(workspace_file.rod_groups), ROD_TYPE_ACTIVE, dtype=np.int32)
+        rod_length_limits = np.zeros((len(workspace_file.rod_groups), 2), dtype=np.float64)
+        rod_force_limits = np.zeros((len(workspace_file.rod_groups), 2), dtype=np.float64)
         rod_radius = np.full(
             len(workspace_file.rod_groups),
             float(robot.rod_group.rod_radius),
@@ -263,16 +299,60 @@ class Workspace:
             anchor_distance = float(
                 np.linalg.norm(anchor_pos[rod_anchors[i, 1]] - anchor_pos[rod_anchors[i, 0]])
             )
-            min_length = anchor_distance
-            rest_length = min_length + float(robot.rod_group.length_delta)
+            min_length = float(rod_group.min_length or anchor_distance)
+            rest_length = float(rod_group.rest_length or anchor_distance)
+            max_length = max(
+                rest_length,
+                min_length + float(robot.rod_group.length_delta),
+            )
+            if rod_group.length_limits:
+                limits = np.asarray(rod_group.length_limits[:2], dtype=np.float64)
+                if limits.shape[0] == 2:
+                    min_length = float(min(limits[0], limits[1]))
+                    max_length = float(max(limits[0], limits[1]))
 
             rod_rest_length[i] = rest_length
             rod_min_length[i] = max(min_length, 1e-6)
             control_name = rod_group.control_group or rod_group.name
             rod_control_group[i] = control_group_lookup[control_name]
-            rod_enabled[i] = True
-            rod_actuated[i] = True
-            rod_group_mass[i] = 1.0
+            rod_enabled[i] = bool(rod_group.enabled)
+            rod_actuated[i] = bool(rod_group.actuated)
+            rod_group_mass[i] = float(rod_group.group_mass or 1.0)
+            rod_radius[i] = float(rod_group.rod_radius or robot.rod_group.rod_radius)
+
+            rod_type_name = rod_group.rod_type or ("active" if bool(rod_group.actuated) else "passive")
+            normalized_rod_type = _ROD_TYPE_BY_NAME.get(rod_type_name)
+            if normalized_rod_type is None:
+                raise ValueError(
+                    f"unsupported rod_type for rod group '{rod_group.name}': {rod_type_name}"
+                )
+            rod_type[i] = normalized_rod_type
+            rod_length_limits[i] = np.asarray(
+                [max(min_length, 1e-6), max(max_length, max(min_length, 1e-6))],
+                dtype=np.float64,
+            )
+
+            default_force_limit = float(config.k) * max(float(robot.rod_group.length_delta), 1.0)
+            if rod_group.force_limits:
+                force_limits = np.asarray(rod_group.force_limits[:2], dtype=np.float64)
+                if force_limits.shape[0] == 2:
+                    rod_force_limits[i] = np.asarray(
+                        [
+                            float(min(force_limits[0], force_limits[1])),
+                            float(max(force_limits[0], force_limits[1])),
+                        ],
+                        dtype=np.float64,
+                    )
+                else:
+                    rod_force_limits[i] = np.asarray(
+                        [-default_force_limit, default_force_limit],
+                        dtype=np.float64,
+                    )
+            else:
+                rod_force_limits[i] = np.asarray(
+                    [-default_force_limit, default_force_limit],
+                    dtype=np.float64,
+                )
 
             # 套筒参数：仅使用新字段。
             sleeve_radius = float(robot.rod_group.sleeve_radius)
@@ -310,6 +390,10 @@ class Workspace:
             [bool(group.enabled) for group in control_groups],
             dtype=np.bool_,
         )
+        control_group_default_target = np.asarray(
+            [float(group.default_target or 0.0) for group in control_groups],
+            dtype=np.float64,
+        )
 
         topology = TopologyState(
             anchor_ids=anchor_ids,
@@ -317,6 +401,7 @@ class Workspace:
             anchor_fixed=anchor_fixed,
             anchor_mass=anchor_mass,
             anchor_radius=anchor_radius,
+            anchor_projection_target=anchor_projection_target,
             rod_group_ids=rod_group_ids,
             rod_anchors=rod_anchors,
             rod_rest_length=rod_rest_length,
@@ -327,15 +412,12 @@ class Workspace:
             rod_group_mass=rod_group_mass,
             rod_radius=rod_radius,
             rod_sleeve_half=rod_sleeve_half,
+            rod_type=rod_type,
+            rod_length_limits=rod_length_limits,
+            rod_force_limits=rod_force_limits,
         )
         physics = PhysicsState(
             v0=_record_v0(anchor_pos),
-            velocities=np.zeros_like(anchor_pos),
-            forces=np.zeros_like(anchor_pos),
-            lengths=_edge_lengths(anchor_pos, rod_anchors),
-            control_group_target=control_group_target,
-            control_group_value=control_group_value,
-            frames=deepcopy(workspace_file.anchor_frames),
         )
         ui = UiState(
             anchor_status=np.zeros(anchor_count, dtype=np.int8),
@@ -350,6 +432,7 @@ class Workspace:
             control_group_ids=control_group_ids,
             control_group_colors=control_group_colors,
             control_group_enabled=control_group_enabled,
+            control_group_default_target=control_group_default_target,
         )
         return cls(
             config=config,
@@ -375,6 +458,7 @@ class Workspace:
                 anchor_fixed=self.topology.anchor_fixed.copy(),
                 anchor_mass=self.topology.anchor_mass.copy(),
                 anchor_radius=self.topology.anchor_radius.copy(),
+                anchor_projection_target=self.topology.anchor_projection_target.copy(),
                 rod_group_ids=self.topology.rod_group_ids.copy(),
                 rod_anchors=self.topology.rod_anchors.copy(),
                 rod_rest_length=self.topology.rod_rest_length.copy(),
@@ -385,19 +469,12 @@ class Workspace:
                 rod_group_mass=self.topology.rod_group_mass.copy(),
                 rod_radius=self.topology.rod_radius.copy(),
                 rod_sleeve_half=self.topology.rod_sleeve_half.copy(),
+                rod_type=self.topology.rod_type.copy(),
+                rod_length_limits=self.topology.rod_length_limits.copy(),
+                rod_force_limits=self.topology.rod_force_limits.copy(),
             ),
             physics=PhysicsState(
                 v0=self.physics.v0.copy(),
-                velocities=self.physics.velocities.copy(),
-                forces=self.physics.forces.copy(),
-                lengths=self.physics.lengths.copy(),
-                control_group_target=self.physics.control_group_target.copy(),
-                control_group_value=self.physics.control_group_value.copy(),
-                num_steps=self.physics.num_steps,
-                i_action=self.physics.i_action,
-                i_action_prev=self.physics.i_action_prev,
-                record_frames=self.physics.record_frames,
-                frames=deepcopy(self.physics.frames),
             ),
             script=ScriptState(
                 script=self.script.script.copy(),
@@ -406,6 +483,7 @@ class Workspace:
                 control_group_ids=self.script.control_group_ids.copy(),
                 control_group_colors=self.script.control_group_colors.copy(),
                 control_group_enabled=self.script.control_group_enabled.copy(),
+                control_group_default_target=self.script.control_group_default_target.copy(),
             ),
             ui=UiState(
                 anchor_status=self.ui.anchor_status.copy(),
@@ -432,19 +510,6 @@ class Workspace:
         self.script = snapshot.script
         self.ui = snapshot.ui
 
-    def reset_runtime(self) -> None:
-        """
-        重置仿真运行时状态（速度、受力、长度、步数等），不影响结构。
-        """
-        self.physics.velocities.fill(0.0)
-        self.physics.forces.fill(0.0)
-        self.physics.lengths = _edge_lengths(self.topology.anchor_pos, self.topology.rod_anchors)
-        self.physics.v0 = _record_v0(self.topology.anchor_pos)
-        self.physics.num_steps = 0
-        self.physics.i_action = 0
-        self.physics.i_action_prev = 0
-        self.physics.control_group_target = np.zeros(self.script.num_channels, dtype=np.float64)
-        self.physics.control_group_value = np.zeros(self.script.num_channels, dtype=np.float64)
 
     def restore_initial_state(self) -> None:
         """
@@ -473,6 +538,7 @@ class Workspace:
                 radius=float(self.topology.anchor_radius[i]),
                 fixed=bool(self.topology.anchor_fixed[i]),
                 mass=float(self.topology.anchor_mass[i]),
+                projection_target=bool(self.topology.anchor_projection_target[i]),
             )
             for i, anchor_id in enumerate(self.topology.anchor_ids)
         }
@@ -488,6 +554,7 @@ class Workspace:
                     name=rod_group_id,
                     site1=self.topology.anchor_ids[int(self.topology.rod_anchors[i, 0])],
                     site2=self.topology.anchor_ids[int(self.topology.rod_anchors[i, 1])],
+                    rod_type=rod_type_name(int(self.topology.rod_type[i])),
                     actuated=bool(self.topology.rod_actuated[i]),
                     enabled=bool(self.topology.rod_enabled[i]),
                     control_group=control_group,
@@ -497,6 +564,8 @@ class Workspace:
                     sleeve_display_half_length_ratio=float(self.topology.rod_sleeve_half[i, 2]),
                     rest_length=float(self.topology.rod_rest_length[i]),
                     min_length=float(self.topology.rod_min_length[i]),
+                    length_limits=self.topology.rod_length_limits[i].tolist(),
+                    force_limits=self.topology.rod_force_limits[i].tolist(),
                 )
             )
         control_groups = [
@@ -512,8 +581,8 @@ class Workspace:
                     _DEFAULT_COLOR_PALETTE[i % len(_DEFAULT_COLOR_PALETTE)].astype(np.float64)
                     / 255.0
                 ).tolist(),
-                default_target=float(self.physics.control_group_target[i])
-                if self.physics.control_group_target.shape[0] > i
+                default_target=float(self.script.control_group_default_target[i])
+                if self.script.control_group_default_target.shape[0] > i
                 else 0.0,
                 enabled=bool(self.script.control_group_enabled[i])
                 if self.script.control_group_enabled.shape[0] > i
@@ -522,12 +591,12 @@ class Workspace:
             for i in range(self.script.num_channels)
         ]
         return WorkspaceFile(
+            description=self.description if hasattr(self, "description") else None,
             sites=sites,
             rod_groups=rod_groups,
             control_groups=control_groups,
             script=self.script.script.tolist(),
             num_actions=self.script.num_actions,
-            anchor_frames=deepcopy(self.physics.frames or []),
         )
 
 
@@ -735,6 +804,11 @@ def _default_control_colors(count: int) -> UInt8Array:
     )
 
 
+def rod_type_name(rod_type: int) -> str:
+    """将杆件类型编码转换为 schema 名称。"""
+    return _ROD_TYPE_NAME_BY_ID.get(int(rod_type), "active")
+
+
 def _color_to_uint8(values: list[float], *, index: int) -> np.ndarray:
     """
     将颜色值（0~1或0~255）转换为uint8 RGB数组。
@@ -753,4 +827,3 @@ def _color_to_uint8(values: list[float], *, index: int) -> np.ndarray:
     else:
         rgb = np.clip(np.round(array[:3]), 0, 255)
     return rgb.astype(np.uint8)
-

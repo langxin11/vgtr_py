@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .engine import precompute
-from .workspace import Workspace
+from .workspace import ROD_TYPE_ACTIVE, Workspace
 
 
 def selected_vertex_indices(workspace: Workspace) -> np.ndarray:
@@ -32,7 +31,7 @@ def selected_edge_indices(workspace: Workspace) -> np.ndarray:
     return np.flatnonzero(workspace.ui.rod_group_status == 2)
 
 
-# Aliases for internal compatibility
+# 内部兼容性别名：vertex/edge 为底层图论语义，anchor/rod_group 为业务语义
 selected_anchor_indices = selected_vertex_indices
 selected_rod_group_indices = selected_edge_indices
 
@@ -61,7 +60,7 @@ def select_vertex(workspace: Workspace, index: int, *, additive: bool = False) -
     workspace.ui.anchor_status[index] = 2
 
 
-# Alias for internal compatibility
+# 内部兼容性别名
 select_anchor = select_vertex
 
 
@@ -76,7 +75,7 @@ def toggle_vertex_selection(workspace: Workspace, index: int) -> None:
     workspace.ui.anchor_status[index] = 0 if current == 2 else 2
 
 
-# Alias for internal compatibility
+# 内部兼容性别名
 toggle_anchor_selection = toggle_vertex_selection
 
 
@@ -93,7 +92,7 @@ def select_edge(workspace: Workspace, index: int, *, additive: bool = False) -> 
     workspace.ui.rod_group_status[index] = 2
 
 
-# Alias for internal compatibility
+# 内部兼容性别名
 select_rod_group = select_edge
 
 
@@ -108,7 +107,7 @@ def toggle_edge_selection(workspace: Workspace, index: int) -> None:
     workspace.ui.rod_group_status[index] = 0 if current == 2 else 2
 
 
-# Alias for internal compatibility
+# 内部兼容性别名
 toggle_rod_group_selection = toggle_edge_selection
 
 
@@ -455,6 +454,14 @@ def _filter_edges(workspace: Workspace, keep: np.ndarray, *, preserve_edges: boo
 
 
 def _record_v0(vertices: np.ndarray) -> np.ndarray:
+    """记录基准位形，将模型整体抬升至地面之上。
+
+    Args:
+        vertices: 锚点位置数组，shape (N, 3)。
+
+    Returns:
+        抬升后的基准位形，保证所有锚点 z >= 0。
+    """
     if vertices.size == 0:
         return vertices.copy()
     bbox_min = vertices.min(axis=0)
@@ -465,3 +472,208 @@ def _record_v0(vertices: np.ndarray) -> np.ndarray:
     if bbox_max[2] != bbox_min[2]:
         v0[:, 2] += bbox_max[2] - bbox_min[2]
     return v0
+def precompute(workspace: Workspace) -> None:
+    """同步拓扑与运行时数组尺寸，并刷新派生长度缓存。"""
+    sync_workspace_shapes(workspace)
+
+
+def sync_workspace_shapes(workspace: Workspace) -> None:
+    """拓扑/脚本变更后调用：同步所有状态数组尺寸。"""
+    topology = workspace.topology
+    physics = workspace.physics
+    script = workspace.script
+    config = workspace.config
+    robot = workspace.robot_config
+
+    num_anchors = topology.anchor_pos.shape[0]
+    num_rod_groups = topology.rod_anchors.shape[0]
+    num_control_groups = script.num_channels
+    num_actions = script.num_actions
+
+    topology.anchor_fixed = _resize_bool_array(topology.anchor_fixed, num_anchors, False)
+    topology.anchor_projection_target = _resize_bool_array(
+        topology.anchor_projection_target, num_anchors, False
+    )
+    topology.anchor_mass = _resize_float_array(
+        topology.anchor_mass,
+        num_anchors,
+        float(robot.anchor.mass),
+    )
+    topology.anchor_radius = _resize_float_array(
+        topology.anchor_radius,
+        num_anchors,
+        float(robot.anchor.radius),
+    )
+    topology.rod_rest_length = _resize_float_array(
+        topology.rod_rest_length, num_rod_groups, config.default_max_length
+    )
+    topology.rod_min_length = _resize_float_array(
+        topology.rod_min_length,
+        num_rod_groups,
+        config.default_min_length,
+    )
+    topology.rod_enabled = _resize_bool_array(topology.rod_enabled, num_rod_groups, True)
+    topology.rod_actuated = _resize_bool_array(topology.rod_actuated, num_rod_groups, False)
+    topology.rod_control_group = _resize_int_array(topology.rod_control_group, num_rod_groups, 0)
+    topology.rod_group_mass = _resize_float_array(topology.rod_group_mass, num_rod_groups, 1.0)
+    topology.rod_type = _resize_int_array(topology.rod_type, num_rod_groups, ROD_TYPE_ACTIVE)
+    topology.rod_length_limits = _resize_float2_array(
+        topology.rod_length_limits,
+        num_rod_groups,
+        np.asarray(
+            [float(config.default_min_length), float(config.default_max_length)],
+            dtype=np.float64,
+        ),
+    )
+    topology.rod_force_limits = _resize_float2_array(
+        topology.rod_force_limits,
+        num_rod_groups,
+        np.asarray(
+            [
+                -float(config.k) * max(float(robot.rod_group.length_delta), 1.0),
+                float(config.k) * max(float(robot.rod_group.length_delta), 1.0),
+            ],
+            dtype=np.float64,
+        ),
+    )
+    topology.rod_radius = _resize_float_array(
+        topology.rod_radius,
+        num_rod_groups,
+        float(robot.rod_group.rod_radius),
+    )
+    topology.rod_sleeve_half = _resize_float3_array(
+        topology.rod_sleeve_half,
+        num_rod_groups,
+        np.asarray(
+            [
+                float(robot.rod_group.sleeve_radius),
+                float(robot.rod_group.sleeve_radius),
+                float(robot.rod_group.sleeve_display_half_length_ratio),
+            ],
+            dtype=np.float64,
+        ),
+    )
+
+    script.script = _resize_script(
+        script.script,
+        num_channels=num_control_groups,
+        num_actions=num_actions,
+    )
+    script.control_group_enabled = _resize_bool_array(
+        script.control_group_enabled,
+        num_control_groups,
+        True,
+    )
+    script.control_group_colors = _resize_uint8_colors(
+        script.control_group_colors,
+        num_control_groups,
+    )
+
+    workspace.ui.anchor_status = _resize_status_array(workspace.ui.anchor_status, num_anchors)
+    workspace.ui.rod_group_status = _resize_status_array(
+        workspace.ui.rod_group_status, num_rod_groups
+    )
+
+
+
+def _rod_group_lengths(anchor_pos: np.ndarray, rod_anchors: np.ndarray) -> np.ndarray:
+    """计算所有杆组的当前长度。
+
+    Args:
+        anchor_pos: 锚点位置数组，shape (N, 3)。
+        rod_anchors: 杆组两端锚点索引，shape (R, 2)。
+
+    Returns:
+        各杆组长度，shape (R,)。
+    """
+    if rod_anchors.size == 0:
+        return np.zeros(0, dtype=np.float64)
+    return np.linalg.norm(anchor_pos[rod_anchors[:, 1]] - anchor_pos[rod_anchors[:, 0]], axis=1)
+
+
+def _resize_float_array(array: np.ndarray, size: int, fill: float) -> np.ndarray:
+    """将一维浮点数组扩缩至目标长度，保留原有数据并以填充值补足。"""
+    resized = np.full(size, fill, dtype=np.float64)
+    resized[: min(size, array.shape[0])] = array[:size]
+    return resized
+
+
+def _resize_int_array(array: np.ndarray, size: int, fill: int) -> np.ndarray:
+    """将一维整型数组扩缩至目标长度，保留原有数据并以填充值补足。"""
+    resized = np.full(size, fill, dtype=np.int32)
+    resized[: min(size, array.shape[0])] = array[:size]
+    return resized
+
+
+def _resize_bool_array(array: np.ndarray, size: int, fill: bool) -> np.ndarray:
+    """将一维布尔数组扩缩至目标长度，保留原有数据并以填充值补足。"""
+    resized = np.full(size, fill, dtype=np.bool_)
+    resized[: min(size, array.shape[0])] = array[:size]
+    return resized
+
+
+def _resize_status_array(array: np.ndarray, size: int) -> np.ndarray:
+    """将状态数组扩缩至目标长度，原有数据保留，新增部分置 0。"""
+    resized = np.zeros(size, dtype=np.int8)
+    resized[: min(size, array.shape[0])] = array[:size]
+    return resized
+
+
+def _resize_float2_array(array: np.ndarray, size: int, fill: np.ndarray) -> np.ndarray:
+    """将二维浮点数组扩缩至目标长度，保留原有数据并以填充向量补足。
+
+    Args:
+        array: 原始数组，形状可为 (N, 2) 或空。
+        size: 目标长度。
+        fill: 长度为 2 的填充向量。
+
+    Returns:
+        调整后的 np.float64 数组，形状 (size, 2)。
+    """
+    resized = np.tile(fill, (size, 1)).astype(np.float64)
+    if array.size == 0:
+        return resized
+    resized[: min(size, array.shape[0])] = array[:size]
+    return resized
+
+
+def _resize_float3_array(array: np.ndarray, size: int, fill: np.ndarray) -> np.ndarray:
+    """将三维浮点数组（每行 3 列）扩缩至目标长度。"""
+    resized = np.tile(fill, (size, 1)).astype(np.float64)
+    if array.size == 0:
+        return resized
+    resized[: min(size, array.shape[0])] = array[:size]
+    return resized
+
+
+def _resize_uint8_colors(array: np.ndarray, size: int) -> np.ndarray:
+    """将 RGB 颜色数组扩缩至目标长度，新增部分置黑色。"""
+    resized = np.zeros((size, 3), dtype=np.uint8)
+    if array.size == 0:
+        return resized
+    resized[: min(size, array.shape[0])] = array[:size]
+    return resized
+
+
+def _resize_script(array: np.ndarray, *, num_channels: int, num_actions: int) -> np.ndarray:
+    """将脚本矩阵扩缩至目标通道数与动作数，保留左上角原有数据。
+
+    Args:
+        array: 原始脚本矩阵，shape (C, A)。
+        num_channels: 目标通道数。
+        num_actions: 目标动作数。
+
+    Returns:
+        调整后的脚本矩阵，shape (num_channels, num_actions)。
+    """
+    resized = np.zeros((num_channels, num_actions), dtype=np.float64)
+    if array.size == 0:
+        return resized
+
+    channel_count = min(num_channels, array.shape[0])
+    action_count = min(num_actions, array.shape[1] if array.ndim > 1 else 0)
+    if action_count > 0:
+        resized[:channel_count, :action_count] = array[:channel_count, :action_count]
+    return resized
+
+

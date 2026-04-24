@@ -58,23 +58,21 @@ def test_workspace_from_vgtr_file_populates_new_runtime_fields() -> None:
     )
 
     # 验证物理参数的正确映射
-    # 锚点间距 2.0，length_delta 0.1 => rest_length 2.1
+    # 锚点间距 2.0 => rest_length 2.0；默认行程上限由 length_delta 扩展到 2.1
     np.testing.assert_allclose(
-        workspace.topology.rod_rest_length, np.asarray([2.1], dtype=np.float64)
+        workspace.topology.rod_rest_length, np.asarray([2.0], dtype=np.float64)
     )
     np.testing.assert_allclose(
         workspace.topology.rod_min_length, np.asarray([2.0], dtype=np.float64)
+    )
+    np.testing.assert_allclose(
+        workspace.topology.rod_length_limits, np.asarray([[2.0, 2.1]], dtype=np.float64)
     )
 
     # 验证 UI 颜色配置（浮点 RGB 转 Uint8 (255)）
     np.testing.assert_array_equal(
         workspace.script.control_group_colors,
         np.asarray([[255, 0, 0]], dtype=np.uint8),
-    )
-    # 验证控制组目标值的填充
-    np.testing.assert_allclose(
-        workspace.physics.control_group_target,
-        np.asarray([0.25], dtype=np.float64),
     )
 
 
