@@ -171,6 +171,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cloudpickle"
+version = "3.1.2"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/27/fb/576f067976d320f5f0114a8d9fa1215425441bb35627b1993e5afd8111e5/cloudpickle-3.1.2.tar.gz", hash = "sha256:7fda9eb655c9c230dab534f1983763de5835249750e85fbcef43aaa30a9a2414", size = 22330, upload-time = "2025-11-03T09:25:26.604Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl", hash = "sha256:9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a", size = 22228, upload-time = "2025-11-03T09:25:25.534Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -220,6 +229,30 @@ wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/32/2c/34bdcd616daeb1a7066d28af419ef5728bd28b74c1b4c5658c4945809bdf/embreex-2.17.7.post7-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:2341a479cb996e2e4e36cabc499c61d81d8e67acc8f2b3c1eb1628ccacde88a1", size = 10742295, upload-time = "2025-10-22T20:07:51.997Z" },
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/8c/5c/940683357ad9aa52ecb0fc040e8f4422bcd2fd7596654f5ccfe7f2c43b44/embreex-2.17.7.post7-cp314-cp314t-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8f943bb39ea6494e20632ff02613c7cff730a8349ceb572ae4742b2201f2de2f", size = 17364382, upload-time = "2025-10-22T20:07:54.373Z" },
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/f4/c3/d6d020ecb8701aba43fe210d038459dfc8e1e3d3baf9365163362f50c0ec/embreex-2.17.7.post7-cp314-cp314t-win_amd64.whl", hash = "sha256:29c95e5f6487db6a4f71fcce80d8b1f318e454b936e6318babcd478ae68e0acf", size = 13771100, upload-time = "2025-10-22T20:07:58.099Z" },
+]
+
+[[package]]
+name = "farama-notifications"
+version = "0.0.4"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/2e/2c/8384832b7a6b1fd6ba95bbdcae26e7137bb3eedc955c42fd5cdcc086cfbf/Farama-Notifications-0.0.4.tar.gz", hash = "sha256:13fceff2d14314cf80703c8266462ebf3733c7d165336eee998fc58e545efd18", size = 2131, upload-time = "2023-02-27T18:28:41.047Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/05/2c/ffc08c54c05cdce6fbed2aeebc46348dbe180c6d2c541c7af7ba0aa5f5f8/Farama_Notifications-0.0.4-py3-none-any.whl", hash = "sha256:14de931035a41961f7c056361dc7f980762a143d05791ef5794a751a2caf05ae", size = 2511, upload-time = "2023-02-27T18:28:39.447Z" },
+]
+
+[[package]]
+name = "gymnasium"
+version = "1.2.3"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "cloudpickle" },
+    { name = "farama-notifications" },
+    { name = "numpy" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/76/59/653a9417d98ed3e29ef9734ba52c3495f6c6823b8d5c0c75369f25111708/gymnasium-1.2.3.tar.gz", hash = "sha256:2b2cb5b5fbbbdf3afb9f38ca952cc48aa6aa3e26561400d940747fda3ad42509", size = 829230, upload-time = "2025-12-18T16:51:10.234Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/56/d3/ea5f088e3638dbab12e5c20d6559d5b3bdaeaa1f2af74e526e6815836285/gymnasium-1.2.3-py3-none-any.whl", hash = "sha256:e6314bba8f549c7fdcc8677f7cd786b64908af6e79b57ddaa5ce1825bffb5373", size = 952113, upload-time = "2025-12-18T16:51:08.445Z" },
 ]
 
 [[package]]
@@ -1418,6 +1451,7 @@ name = "vgtr-py"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "gymnasium" },
     { name = "msgspec" },
     { name = "numpy" },
     { name = "typer" },
@@ -1432,9 +1466,21 @@ dev = [
     { name = "ruff" },
     { name = "sphinx" },
 ]
+docs = [
+    { name = "myst-parser" },
+    { name = "pydata-sphinx-theme" },
+    { name = "sphinx" },
+]
+lint = [
+    { name = "ruff" },
+]
+test = [
+    { name = "pytest" },
+]
 
 [package.metadata]
 requires-dist = [
+    { name = "gymnasium", specifier = ">=1.0.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "typer", specifier = ">=0.16.0" },
@@ -1449,6 +1495,13 @@ dev = [
     { name = "ruff", specifier = ">=0.8.0" },
     { name = "sphinx", specifier = ">=9.1.0" },
 ]
+docs = [
+    { name = "myst-parser", specifier = ">=5.0.0" },
+    { name = "pydata-sphinx-theme", specifier = ">=0.17.0" },
+    { name = "sphinx", specifier = ">=9.1.0" },
+]
+lint = [{ name = "ruff", specifier = ">=0.8.0" }]
+test = [{ name = "pytest", specifier = ">=8.0.0" }]
 
 [[package]]
 name = "vhacdx"
