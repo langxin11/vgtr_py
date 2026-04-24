@@ -31,6 +31,15 @@ uv run python examples/env_minimal.py
 
 Creates `VGTREnv`, calls `reset()`, and performs a few `step()` calls.
 
+## Batched Environment
+
+```bash
+uv run python examples/vector_env_minimal.py
+```
+
+Creates `VectorVGTREnv` with multiple CPU-vectorized environments and steps a
+batched action array.
+
 ## Runtime Viser Loop
 
 ```bash
@@ -45,6 +54,16 @@ Workspace JSON -> VGTRModel -> VGTRData -> Simulator.step() -> SceneRenderer/Vis
 ```
 
 Open the printed Viser URL in a browser.
+
+## Batched Runtime Viser Loop
+
+```bash
+uv run python examples/runtime_viser_batch_loop.py
+uv run python examples/runtime_viser_batch_loop.py --num-envs 9 --hide-others --selected-env 0
+```
+
+Renders multiple `VectorVGTREnv` instances in one Viser scene using env-prefixed
+scene nodes and grid offsets.
 
 ## Full UI
 
