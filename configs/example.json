@@ -1,34 +1,65 @@
 {
+  "description": "基础示例 - 展示 VGTR 数据格式的基本组成。",
   "sites": {
     "s1": {
-      "pos": [0.0, 0.0, 0.0],
-      "fixed": true
+      "pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "description": "固定支点",
+      "fixed": true,
+      "projection_target": false
     },
     "s2": {
-      "pos": [1.2, 0.0, 0.0]
+      "pos": [
+        1.2,
+        0.0,
+        0.0
+      ],
+      "description": "可动末端",
+      "projection_target": true
     }
   },
   "rod_groups": [
     {
       "name": "g12",
+      "description": "主动驱动伸缩杆",
       "site1": "s1",
       "site2": "s2",
       "actuated": true,
       "control_group": "drive_A",
       "rest_length": 1.2,
-      "min_length": 0.9
+      "min_length": 0.9,
+      "rod_type": "active",
+      "length_limits": [
+        0.9,
+        1.2
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     }
   ],
   "control_groups": [
     {
       "name": "drive_A",
-      "color": [0.8, 0.4, 0.1],
+      "description": "主驱动通道",
+      "color": [
+        0.8,
+        0.4,
+        0.1
+      ],
       "default_target": 0.0,
       "enabled": true
     }
   ],
   "script": [
-    [0.0, 1.0]
+    [
+      0.0,
+      1.0
+    ]
   ],
   "numActions": 2
 }

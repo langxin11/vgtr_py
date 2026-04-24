@@ -6,7 +6,8 @@
         0.022783863105737254,
         3.2539841134619243
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s2": {
       "pos": [
@@ -14,7 +15,8 @@
         -0.5877830206190092,
         1.6716217848874138
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s3": {
       "pos": [
@@ -22,7 +24,8 @@
         0.6374632376235702,
         1.6716217848873203
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s4": {
       "pos": [
@@ -30,7 +33,8 @@
         0.006765550524705482,
         2.6341918439483356
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s5": {
       "pos": [
@@ -38,7 +42,8 @@
         1.1743880224392222,
         2.8423065045610447
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s6": {
       "pos": [
@@ -46,7 +51,8 @@
         -1.1588584247243665,
         2.842306504560959
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s7": {
       "pos": [
@@ -54,7 +60,8 @@
         1.0268984616727972,
         1.2444540560086084
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s8": {
       "pos": [
@@ -62,7 +69,8 @@
         -1.0238752223836771,
         1.2444540560086321
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s9": {
       "pos": [
@@ -70,7 +78,8 @@
         0.04499200720864654,
         2.4734338054042
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s10": {
       "pos": [
@@ -78,7 +87,8 @@
         -2.064022816606005,
         2.2406091784733726
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s11": {
       "pos": [
@@ -86,7 +96,8 @@
         2.0935517000539483,
         2.24060917847319
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s12": {
       "pos": [
@@ -94,7 +105,8 @@
         -1.6485930416472274,
         0.5887660754712978
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s13": {
       "pos": [
@@ -102,7 +114,8 @@
         -1.4978331944845436,
         0.9680173782069138
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s14": {
       "pos": [
@@ -110,7 +123,8 @@
         -3.1492475442525327,
         1.0471028362050332
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s15": {
       "pos": [
@@ -118,7 +132,8 @@
         -2.4871690859558124,
         2.2127044183779994
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s16": {
       "pos": [
@@ -126,7 +141,8 @@
         -2.180175423246998,
         0.5463829006871913
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s17": {
       "pos": [
@@ -134,7 +150,8 @@
         -3.7477410967164166,
         1.1828461321290122
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s18": {
       "pos": [
@@ -142,7 +159,8 @@
         -0.8305815934722993,
         2.503558239051879
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s19": {
       "pos": [
@@ -150,7 +168,8 @@
         -0.006236494623383656,
         1.1093023350510165
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s20": {
       "pos": [
@@ -158,7 +177,8 @@
         0.799447700762891,
         2.5035582390518543
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s21": {
       "pos": [
@@ -166,7 +186,8 @@
         -0.025458732862894067,
         2.038550716747867
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s22": {
       "pos": [
@@ -174,7 +195,8 @@
         1.6746025347492044,
         0.5887660754714048
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s23": {
       "pos": [
@@ -182,7 +204,8 @@
         1.5568496161215999,
         0.9680173782070233
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s24": {
       "pos": [
@@ -190,7 +213,8 @@
         3.195155730359136,
         1.0471028362051256
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s25": {
       "pos": [
@@ -198,7 +222,8 @@
         2.5645980178325023,
         2.2127044183779643
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s26": {
       "pos": [
@@ -206,7 +231,8 @@
         2.2649968141297205,
         0.5463829006871884
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s27": {
       "pos": [
@@ -214,7 +240,8 @@
         3.839997326830541,
         1.1828461321290205
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s28": {
       "pos": [
@@ -222,7 +249,8 @@
         -2.4580140500858367,
         1.5817639403009685
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s29": {
       "pos": [
@@ -230,7 +258,8 @@
         -3.107244352930499,
         0.0
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s30": {
       "pos": [
@@ -238,7 +267,8 @@
         -1.4166518261735779,
         0.22891511229980635
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s31": {
       "pos": [
@@ -246,7 +276,8 @@
         2.5816981118629805,
         1.5817639403009596
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s32": {
       "pos": [
@@ -254,7 +285,8 @@
         3.2305632815129544,
         0.0
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s33": {
       "pos": [
@@ -262,7 +294,8 @@
         1.5454749705928055,
         0.22891511229978798
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s34": {
       "pos": [
@@ -270,7 +303,8 @@
         -1.4285485127473565,
         1.0083268227144908
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s35": {
       "pos": [
@@ -278,7 +312,8 @@
         -0.02880745708916605,
         0.306313884892729
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s36": {
       "pos": [
@@ -286,7 +321,8 @@
         1.3865695516371392,
         1.008326822714516
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s37": {
       "pos": [
@@ -294,7 +330,8 @@
         0.8181796740224248,
         1.3347699894460183
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s38": {
       "pos": [
@@ -302,7 +339,8 @@
         -0.906692883153267,
         1.3347699894459866
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s39": {
       "pos": [
@@ -310,7 +348,8 @@
         -0.05338845674994566,
         0.0
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s40": {
       "pos": [
@@ -318,7 +357,8 @@
         -0.06569512672955415,
         1.4891309070754648
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s41": {
       "pos": [
@@ -326,7 +366,8 @@
         -1.5170911332658346,
         0.8746444239268194
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s42": {
       "pos": [
@@ -334,7 +375,8 @@
         -1.3038523602384382,
         0.3356189117197395
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s43": {
       "pos": [
@@ -342,7 +384,8 @@
         1.4047179442957205,
         0.8746444239228347
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s44": {
       "pos": [
@@ -350,7 +393,8 @@
         1.1638815293642706,
         0.3356189117245291
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s45": {
       "pos": [
@@ -358,7 +402,8 @@
         -1.0646987444926979,
         0.45518204776376797
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     },
     "s46": {
       "pos": [
@@ -366,7 +411,8 @@
         0.9955041062765542,
         0.45518204776375326
       ],
-      "fixed": false
+      "fixed": false,
+      "projection_target": true
     }
   },
   "rod_groups": [
@@ -375,1096 +421,2329 @@
       "site1": "s3",
       "site2": "s2",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.2253758861301505,
+        1.3253758861301506
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g2",
       "site1": "s3",
       "site2": "s1",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7027162112429994,
+        1.8027162112429995
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g3",
       "site1": "s2",
       "site2": "s1",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.702716211242865,
+        1.8027162112428652
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g4",
       "site1": "s3",
       "site2": "s4",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.687042468130648,
+        1.787042468130648
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g5",
       "site1": "s2",
       "site2": "s4",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6870424681305192,
+        1.7870424681305193
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g6",
       "site1": "s1",
       "site2": "s4",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.2637109490917817,
+        1.3637109490917818
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g7",
       "site1": "s1",
       "site2": "s5",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.611521964183438,
+        1.711521964183438
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g8",
       "site1": "s3",
       "site2": "s5",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7480412457257102,
+        1.8480412457257103
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g9",
       "site1": "s4",
       "site2": "s5",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1871516818694194,
+        1.2871516818694195
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g10",
       "site1": "s2",
       "site2": "s6",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7480412457255865,
+        1.8480412457255866
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g11",
       "site1": "s1",
       "site2": "s6",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6115219641834229,
+        1.711521964183423
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g12",
       "site1": "s4",
       "site2": "s6",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.187151681869349,
+        1.2871516818693491
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g13",
       "site1": "s3",
       "site2": "s7",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7103431732311778,
+        1.8103431732311779
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g14",
       "site1": "s4",
       "site2": "s7",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7645079664518961,
+        1.8645079664518962
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g15",
       "site1": "s5",
       "site2": "s7",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.660696079493248,
+        1.760696079493248
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g16",
       "site1": "s4",
       "site2": "s8",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7645079664518404,
+        1.8645079664518405
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g17",
       "site1": "s2",
       "site2": "s8",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7103431732311485,
+        1.8103431732311486
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g18",
       "site1": "s6",
       "site2": "s8",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6606960794931347,
+        1.7606960794931348
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g19",
       "site1": "s1",
       "site2": "s9",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7147904680025534,
+        1.8147904680025535
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g20",
       "site1": "s2",
       "site2": "s9",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7140078804948697,
+        1.8140078804948698
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g21",
       "site1": "s3",
       "site2": "s9",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.714007880494928,
+        1.814007880494928
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g22",
       "site1": "s2",
       "site2": "s10",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7186318290643654,
+        1.8186318290643655
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g23",
       "site1": "s6",
       "site2": "s10",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1940882449796988,
+        1.2940882449796989
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g24",
       "site1": "s8",
       "site2": "s10",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7124275747932132,
+        1.8124275747932133
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g25",
       "site1": "s5",
       "site2": "s11",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1940882449800092,
+        1.2940882449800093
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g26",
       "site1": "s3",
       "site2": "s11",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7186318290642593,
+        1.8186318290642594
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g27",
       "site1": "s7",
       "site2": "s11",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.712427574793335,
+        1.8124275747933352
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g28",
       "site1": "s8",
       "site2": "s12",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.2079504187926629,
+        1.307950418792663
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g29",
       "site1": "s2",
       "site2": "s12",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7132607184139776,
+        1.8132607184139777
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g30",
       "site1": "s10",
       "site2": "s12",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7080123158904212,
+        1.8080123158904213
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g31",
       "site1": "s2",
       "site2": "s13",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.197892936213615,
+        1.2978929362136151
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g32",
       "site1": "s10",
       "site2": "s13",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7178895695686276,
+        1.8178895695686277
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g33",
       "site1": "s12",
       "site2": "s13",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.2038529374643177,
+        1.3038529374643177
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g34",
       "site1": "s10",
       "site2": "s14",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7138527468325788,
+        1.813852746832579
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g35",
       "site1": "s12",
       "site2": "s14",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7205753013818608,
+        1.8205753013818609
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g36",
       "site1": "s13",
       "site2": "s14",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.707465146597292,
+        1.8074651465972922
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g37",
       "site1": "s13",
       "site2": "s15",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7167296514947816,
+        1.8167296514947817
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g38",
       "site1": "s10",
       "site2": "s15",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.706459739747953,
+        1.8064597397479532
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g39",
       "site1": "s14",
       "site2": "s15",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7177078357399165,
+        1.8177078357399166
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g40",
       "site1": "s14",
       "site2": "s16",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7152380313238536,
+        1.8152380313238536
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g41",
       "site1": "s13",
       "site2": "s16",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.203381423750796,
+        1.3033814237507961
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g42",
       "site1": "s15",
       "site2": "s16",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.712662772416294,
+        1.812662772416294
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g43",
       "site1": "s15",
       "site2": "s17",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.711294604450427,
+        1.811294604450427
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g44",
       "site1": "s14",
       "site2": "s17",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7156390541379323,
+        1.8156390541379324
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g45",
       "site1": "s16",
       "site2": "s17",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7146015785871065,
+        1.8146015785871066
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g46",
       "site1": "s6",
       "site2": "s18",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6767572575946919,
+        1.776757257594692
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g47",
       "site1": "s4",
       "site2": "s18",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7432390858523403,
+        1.8432390858523404
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g48",
       "site1": "s8",
       "site2": "s18",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7344449544576384,
+        1.8344449544576384
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g49",
       "site1": "s4",
       "site2": "s19",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.767586599076323,
+        1.8675865990763232
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g50",
       "site1": "s8",
       "site2": "s19",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1634731343142928,
+        1.2634731343142929
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g51",
       "site1": "s18",
       "site2": "s19",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7377682114824409,
+        1.837768211482441
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g52",
       "site1": "s18",
       "site2": "s20",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6302017471218404,
+        1.7302017471218405
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g53",
       "site1": "s4",
       "site2": "s20",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7432390858523776,
+        1.8432390858523777
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g54",
       "site1": "s19",
       "site2": "s20",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7377682114823512,
+        1.8377682114823513
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g55",
       "site1": "s19",
       "site2": "s21",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6155541947421233,
+        1.7155541947421233
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g56",
       "site1": "s18",
       "site2": "s21",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1589318907679014,
+        1.2589318907679015
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g57",
       "site1": "s20",
       "site2": "s21",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1589318907679118,
+        1.258931890767912
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g58",
       "site1": "s3",
       "site2": "s22",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.713260718413793,
+        1.813260718413793
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g59",
       "site1": "s7",
       "site2": "s22",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.20795041879275,
+        1.30795041879275
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g60",
       "site1": "s11",
       "site2": "s22",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7080123158901546,
+        1.8080123158901547
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g61",
       "site1": "s11",
       "site2": "s23",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7178895695682237,
+        1.8178895695682238
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g62",
       "site1": "s3",
       "site2": "s23",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1978929362134523,
+        1.2978929362134524
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g63",
       "site1": "s22",
       "site2": "s23",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.2038529374641065,
+        1.3038529374641066
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g64",
       "site1": "s22",
       "site2": "s24",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.720575301381601,
+        1.820575301381601
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g65",
       "site1": "s11",
       "site2": "s24",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.713852746832149,
+        1.813852746832149
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g66",
       "site1": "s23",
       "site2": "s24",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7074651465969979,
+        1.807465146596998
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g67",
       "site1": "s11",
       "site2": "s25",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.706459739747595,
+        1.806459739747595
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g68",
       "site1": "s23",
       "site2": "s25",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7167296514945989,
+        1.816729651494599
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g69",
       "site1": "s24",
       "site2": "s25",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7177078357396882,
+        1.8177078357396883
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g70",
       "site1": "s23",
       "site2": "s26",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.2033814237508869,
+        1.303381423750887
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g71",
       "site1": "s24",
       "site2": "s26",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7152380313237392,
+        1.8152380313237393
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g72",
       "site1": "s25",
       "site2": "s26",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7126627724162655,
+        1.8126627724162656
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g73",
       "site1": "s24",
       "site2": "s27",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7156390541380209,
+        1.815639054138021
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g74",
       "site1": "s25",
       "site2": "s27",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.711294604450493,
+        1.8112946044504932
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g75",
       "site1": "s26",
       "site2": "s27",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7146015785870963,
+        1.8146015785870964
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g76",
       "site1": "s16",
       "site2": "s28",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7161346698001916,
+        1.8161346698001917
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g77",
       "site1": "s15",
       "site2": "s28",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.710670499873754,
+        1.8106704998737542
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g78",
       "site1": "s17",
       "site2": "s28",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7174849484442039,
+        1.817484948444204
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g79",
       "site1": "s17",
       "site2": "s29",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7117220877903243,
+        1.8117220877903244
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g80",
       "site1": "s16",
       "site2": "s29",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.716268677634598,
+        1.816268677634598
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g81",
       "site1": "s28",
       "site2": "s29",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7098206965138814,
+        1.8098206965138814
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g82",
       "site1": "s16",
       "site2": "s30",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.714261917269519,
+        1.8142619172695191
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g83",
       "site1": "s28",
       "site2": "s30",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.71485485898677,
+        1.8148548589867701
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g84",
       "site1": "s29",
       "site2": "s30",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7139460906007593,
+        1.8139460906007594
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g85",
       "site1": "s25",
       "site2": "s31",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7106704998739164,
+        1.8106704998739165
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g86",
       "site1": "s26",
       "site2": "s31",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7161346698002315,
+        1.8161346698002316
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g87",
       "site1": "s27",
       "site2": "s31",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.717484948444236,
+        1.8174849484442361
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g88",
       "site1": "s26",
       "site2": "s32",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.716268677634588,
+        1.816268677634588
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g89",
       "site1": "s27",
       "site2": "s32",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7117220877903132,
+        1.8117220877903133
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g90",
       "site1": "s31",
       "site2": "s32",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7098206965138807,
+        1.8098206965138808
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g91",
       "site1": "s31",
       "site2": "s33",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.714854858986767,
+        1.814854858986767
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g92",
       "site1": "s26",
       "site2": "s33",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7142619172695468,
+        1.8142619172695469
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g93",
       "site1": "s32",
       "site2": "s33",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7139460906007675,
+        1.8139460906007676
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g94",
       "site1": "s19",
       "site2": "s34",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.737993261857549,
+        1.8379932618575492
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g95",
       "site1": "s18",
       "site2": "s34",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6510255307357433,
+        1.7510255307357434
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g96",
       "site1": "s21",
       "site2": "s34",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.771275340860332,
+        1.871275340860332
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g97",
       "site1": "s21",
       "site2": "s35",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7474696416414437,
+        1.8474696416414438
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g98",
       "site1": "s19",
       "site2": "s35",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7472355991524628,
+        1.847235599152463
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g99",
       "site1": "s34",
       "site2": "s35",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6623378684287518,
+        1.7623378684287518
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g100",
       "site1": "s21",
       "site2": "s36",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7712753408603457,
+        1.8712753408603457
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g101",
       "site1": "s19",
       "site2": "s36",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7379932618574159,
+        1.837993261857416
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g102",
       "site1": "s35",
       "site2": "s36",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6623378684288659,
+        1.762337868428866
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g103",
       "site1": "s35",
       "site2": "s37",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7116779507401412,
+        1.8116779507401413
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g104",
       "site1": "s21",
       "site2": "s37",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7057285991181994,
+        1.8057285991181995
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g105",
       "site1": "s36",
       "site2": "s37",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7212388027325662,
+        1.8212388027325663
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g106",
       "site1": "s35",
       "site2": "s38",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7116779507400235,
+        1.8116779507400236
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g107",
       "site1": "s21",
       "site2": "s38",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7057285991181412,
+        1.8057285991181413
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g108",
       "site1": "s37",
       "site2": "s38",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7250550442344477,
+        1.8250550442344478
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g109",
       "site1": "s37",
       "site2": "s39",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7087225851273105,
+        1.8087225851273105
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g110",
       "site1": "s35",
       "site2": "s39",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7175154645882384,
+        1.8175154645882385
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g111",
       "site1": "s38",
       "site2": "s39",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.708722585127335,
+        1.8087225851273352
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g112",
       "site1": "s38",
       "site2": "s40",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7147156717281937,
+        1.8147156717281938
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g113",
       "site1": "s37",
       "site2": "s40",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7147156717280685,
+        1.8147156717280686
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g114",
       "site1": "s39",
       "site2": "s40",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7127167525849905,
+        1.8127167525849905
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g115",
       "site1": "s39",
       "site2": "s41",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7136817398729693,
+        1.8136817398729694
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g116",
       "site1": "s38",
       "site2": "s41",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1147603206336236,
+        1.2147603206336237
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g117",
       "site1": "s40",
       "site2": "s41",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7145391027845216,
+        1.8145391027845217
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g118",
       "site1": "s40",
       "site2": "s42",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7147429109802168,
+        1.814742910980217
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g119",
       "site1": "s39",
       "site2": "s42",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7138901766503665,
+        1.8138901766503666
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g120",
       "site1": "s41",
       "site2": "s42",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1145027979371382,
+        1.2145027979371383
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g121",
       "site1": "s37",
       "site2": "s43",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1147603206335213,
+        1.2147603206335214
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g122",
       "site1": "s39",
       "site2": "s43",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7136817398706432,
+        1.8136817398706433
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g123",
       "site1": "s40",
       "site2": "s43",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7145391027867423,
+        1.8145391027867424
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g124",
       "site1": "s39",
       "site2": "s44",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.713890176653098,
+        1.8138901766530982
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g125",
       "site1": "s40",
       "site2": "s44",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7147429109774168,
+        1.814742910977417
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g126",
       "site1": "s43",
       "site2": "s44",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.114502797937136,
+        1.2145027979371361
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g127",
       "site1": "s35",
       "site2": "s45",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1144272741081167,
+        1.2144272741081168
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g128",
       "site1": "s38",
       "site2": "s45",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1148129921577365,
+        1.2148129921577366
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g129",
       "site1": "s39",
       "site2": "s45",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.713936033135275,
+        1.8139360331352752
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g130",
       "site1": "s37",
       "site2": "s46",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.114812992157831,
+        1.214812992157831
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g131",
       "site1": "s35",
       "site2": "s46",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch3",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.114427274108241,
+        1.2144272741082411
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g132",
       "site1": "s39",
       "site2": "s46",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7139360331352773,
+        1.8139360331352774
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g133",
       "site1": "s7",
       "site2": "s19",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.1634731343140943,
+        1.2634731343140944
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g134",
       "site1": "s5",
       "site2": "s20",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch1",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.676757257594666,
+        1.7767572575946662
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g135",
       "site1": "s7",
       "site2": "s20",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch0",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.734444954457585,
+        1.8344449544575852
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g136",
       "site1": "s20",
       "site2": "s36",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.6510255307356936,
+        1.7510255307356937
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "g137",
       "site1": "s34",
       "site2": "s38",
       "actuated": true,
+      "enabled": true,
       "control_group": "ch2",
-      "enabled": true
+      "rod_type": "active",
+      "length_limits": [
+        1.7212388027324304,
+        1.8212388027324304
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     }
   ],
   "control_groups": [

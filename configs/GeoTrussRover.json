@@ -1,32 +1,78 @@
 {
+  "description": "变几何桁架漫游者 - 高性能移动探测平台。",
   "root": "ground",
   "sites": {
     "s1": {
-      "pos": [-0.282190322357, -0.036888376503, 0.453387723520]
+      "pos": [
+        -0.282190322357,
+        -0.036888376503,
+        0.45338772352
+      ],
+      "projection_target": true
     },
     "s2": {
-      "pos": [0.036888376503, -0.036888376503, 0.002142300127]
+      "pos": [
+        0.036888376503,
+        -0.036888376503,
+        0.002142300127
+      ],
+      "projection_target": true
     },
     "s3": {
-      "pos": [0.036888376503, -0.232283376503, 0.340576367672]
+      "pos": [
+        0.036888376503,
+        -0.232283376503,
+        0.340576367672
+      ],
+      "projection_target": true
     },
     "s4": {
-      "pos": [-0.282190322357, 0.158506623497, 0.114953655976]
+      "pos": [
+        -0.282190322357,
+        0.158506623497,
+        0.114953655976
+      ],
+      "projection_target": true
     },
     "s5": {
-      "pos": [-0.282190322357, -0.232283376503, 0.114953655976]
+      "pos": [
+        -0.282190322357,
+        -0.232283376503,
+        0.114953655976
+      ],
+      "projection_target": true
     },
     "s6": {
-      "pos": [0.036888376503, 0.158506623497, 0.340576367672]
+      "pos": [
+        0.036888376503,
+        0.158506623497,
+        0.340576367672
+      ],
+      "projection_target": true
     },
     "s7": {
-      "pos": [0.355967075364, -0.036888376503, 0.453387723520]
+      "pos": [
+        0.355967075364,
+        -0.036888376503,
+        0.45338772352
+      ],
+      "projection_target": true
     },
     "s8": {
-      "pos": [0.355967075364, -0.232283376503, 0.114953655976]
+      "pos": [
+        0.355967075364,
+        -0.232283376503,
+        0.114953655976
+      ],
+      "projection_target": true
     },
     "s9": {
-      "pos": [0.355967075364, 0.158506623497, 0.114953655976]
+      "pos": [
+        0.355967075364,
+        0.158506623497,
+        0.114953655976
+      ],
+      "projection_target": true
     }
   },
   "rod_groups": [
@@ -34,55 +80,136 @@
       "name": "p1",
       "site1": "s1",
       "site2": "s3",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999993022,
+        0.4907899999993022
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p2",
       "site1": "s1",
       "site2": "s5",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999992026,
+        0.4907899999992026
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p3",
       "site1": "s1",
       "site2": "s4",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999992026,
+        0.4907899999992026
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p4",
       "site1": "s1",
       "site2": "s6",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999993022,
+        0.4907899999993022
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p5",
       "site1": "s2",
       "site2": "s3",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907900000000686,
+        0.49079000000006856
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p6",
       "site1": "s2",
       "site2": "s5",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.39078999999959085,
+        0.49078999999959083
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p7",
       "site1": "s2",
       "site2": "s4",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.39078999999959085,
+        0.49078999999959083
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p8",
       "site1": "s2",
       "site2": "s6",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.39079000000006864,
+        0.49079000000006867
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p9",
       "site1": "s3",
       "site2": "s5",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999990364,
+        0.4907899999990364
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p10",
@@ -96,8 +223,16 @@
           "axle_offset": 0.035,
           "diameter": 0.185,
           "thickness": 0.07,
-          "mount_dir": [-0.577350269190, -0.707106781187, -0.408248290464],
-          "wheel_axis": [-0.000000000000, -1.000000000000, 0.000000000000]
+          "mount_dir": [
+            -0.57735026919,
+            -0.707106781187,
+            -0.408248290464
+          ],
+          "wheel_axis": [
+            -0.0,
+            -1.0,
+            0.0
+          ]
         },
         {
           "end": "right",
@@ -105,64 +240,162 @@
           "axle_offset": 0.035,
           "diameter": 0.185,
           "thickness": 0.07,
-          "mount_dir": [-0.577350269190, 0.707106781187, -0.408248290464],
-          "wheel_axis": [0.000000000000, 1.000000000000, -0.000000000000]
+          "mount_dir": [
+            -0.57735026919,
+            0.707106781187,
+            -0.408248290464
+          ],
+          "wheel_axis": [
+            0.0,
+            1.0,
+            -0.0
+          ]
         }
+      ],
+      "rod_type": "active",
+      "length_limits": [
+        0.39078999999999997,
+        0.49078999999999995
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
       ]
     },
     {
       "name": "p11",
       "site1": "s4",
       "site2": "s6",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999990364,
+        0.4907899999990364
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p12",
       "site1": "s6",
       "site2": "s3",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.39078999999999997,
+        0.49078999999999995
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p13",
       "site1": "s2",
       "site2": "s8",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907900000004074,
+        0.4907900000004074
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p14",
       "site1": "s2",
       "site2": "s9",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907900000004074,
+        0.4907900000004074
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p15",
       "site1": "s7",
       "site2": "s6",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.39079000000011876,
+        0.49079000000011874
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p16",
       "site1": "s7",
       "site2": "s3",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.39079000000011876,
+        0.49079000000011874
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p17",
       "site1": "s7",
       "site2": "s8",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999992026,
+        0.4907899999992026
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p18",
       "site1": "s7",
       "site2": "s9",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.3907899999992026,
+        0.4907899999992026
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p19",
       "site1": "s3",
       "site2": "s8",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.390789999999853,
+        0.49078999999985295
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     },
     {
       "name": "p20",
@@ -176,8 +409,16 @@
           "axle_offset": 0.035,
           "diameter": 0.185,
           "thickness": 0.07,
-          "mount_dir": [0.577350269190, -0.707106781187, -0.408248290464],
-          "wheel_axis": [-0.000000000000, -1.000000000000, 0.000000000000]
+          "mount_dir": [
+            0.57735026919,
+            -0.707106781187,
+            -0.408248290464
+          ],
+          "wheel_axis": [
+            -0.0,
+            -1.0,
+            0.0
+          ]
         },
         {
           "end": "right",
@@ -185,16 +426,42 @@
           "axle_offset": 0.035,
           "diameter": 0.185,
           "thickness": 0.07,
-          "mount_dir": [0.577350269190, 0.707106781187, -0.408248290464],
-          "wheel_axis": [0.000000000000, 1.000000000000, -0.000000000000]
+          "mount_dir": [
+            0.57735026919,
+            0.707106781187,
+            -0.408248290464
+          ],
+          "wheel_axis": [
+            0.0,
+            1.0,
+            -0.0
+          ]
         }
+      ],
+      "rod_type": "active",
+      "length_limits": [
+        0.39078999999999997,
+        0.49078999999999995
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
       ]
     },
     {
       "name": "p21",
       "site1": "s9",
       "site2": "s6",
-      "actuated": true
+      "actuated": true,
+      "rod_type": "active",
+      "length_limits": [
+        0.390789999999853,
+        0.49078999999985295
+      ],
+      "force_limits": [
+        -20000.0,
+        20000.0
+      ]
     }
   ]
 }
