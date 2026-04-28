@@ -134,8 +134,8 @@ Actuation Controls 面板
 
 该面板内容根据 ``Manual Mode`` 动态生成：
 
-- ``control-groups`` 模式下，滑块数量等于模型中的控制组数量，每个滑块写入 ``data.ctrl_target`` 的对应通道。
-- ``per-rod`` 模式下，滑块数量等于主动杆组数量，直接覆盖 ``data.rod_target_override``。
+- ``control-groups`` 模式下，滑块数量等于模型中的控制组数量，每个滑块写入 ``state.ctrl_target`` 的对应通道。
+- ``per-rod`` 模式下，滑块数量等于主动杆组数量，直接覆盖 ``state.rod_target_override``。
 - 无有效模型或数据时，该面板自动隐藏。
 
 

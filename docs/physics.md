@@ -4,7 +4,7 @@
 
 ## 1. 当前模型：显式欧拉积分
 
-位置在 `src/vgtr_py/sim.py` 和 `src/vgtr_py/batch.py`。
+位置在 `src/vgtr_py/runtime/kernels.py`。
 
 ### 1.1 积分方案
 
@@ -17,7 +17,7 @@ x += v * h
 ```
 
 - 时间步长 `h = 0.001`（默认）
-- 阻尼系数 `damping_ratio = 0.95`（每步速度缩放）
+- 阻尼系数 `damping_ratio = 0.98`（每步速度缩放）
 - 速度限幅：> 10 m/s 时截断
 - 固定锚点 `(anchor_fixed == True)` 不参与积分
 - 地面穿透硬修正：`z < 0` 时强制 `z=0, vz=0`
@@ -31,13 +31,13 @@ F = k * (current_length - target_length)  # 胡克定律
 F = clamp(F, F_min, F_max)                # 出力限幅
 ```
 
-目标长度因杆件类型而异：
+目标长度仅 Active 杆受控制值驱动，Passive 与 Elastic 均为静息长度钳位：
 
 | 类型 | 目标长度 |
 |------|----------|
 | Active | `L_min + (L_max - L_min) * ctrl[group]`，ctrl ∈ [0,1] |
 | Passive | `clamp(rest_length, L_min, L_max)` |
-| Elastic | `clamp(rest_length, L_min, L_max)` |
+| Elastic | `clamp(rest_length, L_min, L_max)`（当前与 Passive 相同，预留 XPBD 柔性差异） |
 
 `rod_target_override` 可逐杆覆盖目标长度（用于手动调试）。
 
@@ -59,7 +59,7 @@ ctrl += delta
 - **力饱和**：`|raw_force - clipped_force| > 1e-9`（输出力被限幅截断）
 - **行程超限**：`current_length < L_min - 1e-9` 或 `current_length > L_max + 1e-9`
 
-堵转信息写入 `data.rod_stalled`，暴露给 RL 观测空间和奖励函数。
+堵转信息写入 `state.rod_stalled`，暴露给 RL 观测空间和奖励函数。
 
 ### 1.5 外力
 
@@ -88,8 +88,8 @@ F_fric = -normalize(v_xy) * min(friction_factor * Fn, 100 * |v_xy|)
 |------|--------|------|
 | `k` | 20000 | 杆组刚度 |
 | `h` | 0.001 | 时间步长 |
-| `damping_ratio` | 0.95 | 每步速度衰减 |
-| `gravity_factor` | 180 | 重力加速度 |
+| `damping_ratio` | 0.98 | 每步速度衰减 |
+| `gravity_factor` | 50.0 | 重力加速度 |
 | `friction_factor` | 0.5 | 库仑摩擦系数 |
 | `ground_k` | 100000 | 地面弹簧刚度 |
 | `ground_d` | 500 | 地面阻尼 |

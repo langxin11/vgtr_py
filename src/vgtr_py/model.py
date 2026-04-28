@@ -1,7 +1,7 @@
 """编译后的只读仿真模型。
 
 VGTRModel 将 Workspace 中的拓扑、物理参数与控制配置预计算为静态只读结构，
-供 Simulator 在步进中高频读取，避免步进内反复访问工作区的可变状态。
+供 RuntimeSession 在步进中高频读取，避免步进内反复访问工作区的可变状态。
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ UInt8Array = NDArray[np.uint8]
 
 @dataclass(slots=True)
 class VGTRModel:
-    """供 Simulator 与环境使用的只读编译模型。
+    """供 RuntimeSession 与环境使用的只读编译模型。
 
     Attributes:
         config: 仿真全局参数（步长、刚度、阻尼等）。
