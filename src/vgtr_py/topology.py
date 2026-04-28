@@ -134,7 +134,7 @@ def add_joint(workspace: Workspace, source_index: int | None = None) -> int:
         source = topology.anchor_pos[source_index]
 
     new_anchor = source.copy()
-    new_anchor[0] += config.default_min_length
+    new_anchor[0] += 1.0
 
     topology.anchor_pos = np.vstack([topology.anchor_pos, new_anchor])
     topology.anchor_fixed = np.append(topology.anchor_fixed, False)
@@ -480,7 +480,6 @@ def precompute(workspace: Workspace) -> None:
 def sync_workspace_shapes(workspace: Workspace) -> None:
     """拓扑/脚本变更后调用：同步所有状态数组尺寸。"""
     topology = workspace.topology
-    physics = workspace.physics
     script = workspace.script
     config = workspace.config
     robot = workspace.robot_config
@@ -505,12 +504,12 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
         float(robot.anchor.radius),
     )
     topology.rod_rest_length = _resize_float_array(
-        topology.rod_rest_length, num_rod_groups, config.default_max_length
+        topology.rod_rest_length, num_rod_groups, 2.0
     )
     topology.rod_min_length = _resize_float_array(
         topology.rod_min_length,
         num_rod_groups,
-        config.default_min_length,
+        1.0,
     )
     topology.rod_enabled = _resize_bool_array(topology.rod_enabled, num_rod_groups, True)
     topology.rod_actuated = _resize_bool_array(topology.rod_actuated, num_rod_groups, False)
@@ -521,7 +520,7 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
         topology.rod_length_limits,
         num_rod_groups,
         np.asarray(
-            [float(config.default_min_length), float(config.default_max_length)],
+            [1.0, 2.0],
             dtype=np.float64,
         ),
     )
@@ -530,8 +529,8 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
         num_rod_groups,
         np.asarray(
             [
-                -float(config.k) * max(float(robot.rod_group.length_delta), 1.0),
-                float(config.k) * max(float(robot.rod_group.length_delta), 1.0),
+                -float(config.k) * 1.0,
+                float(config.k) * 1.0,
             ],
             dtype=np.float64,
         ),

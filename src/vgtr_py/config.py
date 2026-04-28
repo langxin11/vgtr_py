@@ -22,19 +22,13 @@ class SimulationConfig:
     # 仿真时间步长（秒），越小越稳定但计算开销更高。
     h: float = 0.001
     # 速度阻尼因子，每步对速度进行衰减以抑制振荡。
-    damping_ratio: float = 0.95
-    # 收缩分档间隔，用于推导最大收缩比例。
-    contraction_interval: float = 0.1
-    # 收缩分档数量，用于推导最大收缩比例。
-    contraction_levels: int = 4
+    damping_ratio: float = 0.98
     # 控制组目标值向当前值逼近的每步最大变化率。
     contraction_percent_rate: float = 1e-3
     # 重力加速度缩放因子。
-    gravity_factor: float = 180.0
+    gravity_factor: float = 50.0
     # 是否启用重力。
     gravity: bool = True
-    # 默认最小长度基准（用于拓扑编辑时新增节点偏移和长度推导基线）。
-    default_min_length: float = 1.2
     # 地面摩擦速度衰减系数 (旧)，现在作为库仑摩擦系数 mu 使用。
     friction_factor: float = 0.5
     # 地面接触刚度 (N/m)。
@@ -43,16 +37,6 @@ class SimulationConfig:
     ground_d: float = 500.0
     # 动作周期倍率，num_steps_action = num_steps_action_multiplier / h。
     num_steps_action_multiplier: float = 2.0
-
-    @property
-    def max_max_contraction(self) -> float:
-        """系统允许的最大收缩比例。"""
-        return round(self.contraction_interval * (self.contraction_levels - 1), 2)
-
-    @property
-    def default_max_length(self) -> float:
-        """由最小长度和最大收缩比例推导默认最大长度。"""
-        return self.default_min_length / (1 - self.max_max_contraction)
 
     @property
     def num_steps_action(self) -> float:
@@ -89,8 +73,6 @@ class RodGroupConfig:
     # 初始姿态约定：每侧杆的内端点位于套筒中心。
     # 后续两点距离变化通过“左右杆相对套筒滑动”表达，而不是三段比例缩放。
     initial_inner_end_at_center: bool = True
-    # 长度裕量 delta，满足 L_max = L_min + length_delta。
-    length_delta: float = 0.1
 
 
 @dataclass(slots=True)
@@ -118,12 +100,9 @@ class _ConfigFile(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
         k: 弹簧刚度系数。
         h: 模拟时间步长。
         dampingRatio: 阻尼比。
-        contractionInterval: 每次收缩级别的收缩量间隔。
-        contractionLevels: 收缩级别总数。
         contractionPercentRate: 每次迭代的收缩百分比变化率。
         gravityFactor: 重力因子。
         gravity: 是否启用重力 (1 表示启用，0 表示禁用)。
-        defaultMinLength: 默认最小边长。
         frictionFactor: 摩擦力因子。
         numStepsActionMultiplier: 动作步数乘数。
     """
@@ -131,12 +110,9 @@ class _ConfigFile(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     k: float = _DEFAULT_SIM.k
     h: float = _DEFAULT_SIM.h
     dampingRatio: float = _DEFAULT_SIM.damping_ratio
-    contractionInterval: float = _DEFAULT_SIM.contraction_interval
-    contractionLevels: int = _DEFAULT_SIM.contraction_levels
     contractionPercentRate: float = _DEFAULT_SIM.contraction_percent_rate
     gravityFactor: float = _DEFAULT_SIM.gravity_factor
     gravity: int = int(_DEFAULT_SIM.gravity)
-    defaultMinLength: float = _DEFAULT_SIM.default_min_length
     frictionFactor: float = _DEFAULT_SIM.friction_factor
     groundK: float = _DEFAULT_SIM.ground_k
     groundD: float = _DEFAULT_SIM.ground_d
@@ -172,12 +148,9 @@ def load_config(path: str | Path) -> SimulationConfig:
         k=file_model.k,
         h=file_model.h,
         damping_ratio=file_model.dampingRatio,
-        contraction_interval=file_model.contractionInterval,
-        contraction_levels=file_model.contractionLevels,
         contraction_percent_rate=file_model.contractionPercentRate,
         gravity_factor=file_model.gravityFactor,
         gravity=bool(file_model.gravity),
-        default_min_length=file_model.defaultMinLength,
         friction_factor=file_model.frictionFactor,
         ground_k=file_model.groundK,
         ground_d=file_model.groundD,

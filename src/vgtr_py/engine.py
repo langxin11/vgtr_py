@@ -50,12 +50,12 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
         float(robot.anchor.radius),
     )
     topology.rod_rest_length = _resize_float_array(
-        topology.rod_rest_length, num_rod_groups, config.default_max_length
+        topology.rod_rest_length, num_rod_groups, 2.0
     )
     topology.rod_min_length = _resize_float_array(
         topology.rod_min_length,
         num_rod_groups,
-        config.default_min_length,
+        1.0,
     )
     topology.rod_enabled = _resize_bool_array(topology.rod_enabled, num_rod_groups, True)
     topology.rod_actuated = _resize_bool_array(topology.rod_actuated, num_rod_groups, False)
@@ -78,6 +78,7 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
             dtype=np.float64,
         ),
     )
+
 
     physics.control_group_target = _resize_float_array(
         physics.control_group_target,

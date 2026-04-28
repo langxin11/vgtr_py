@@ -263,22 +263,20 @@ class Workspace:
         control_group_ids = [group.name for group in control_groups]
         control_group_lookup = {group_name: i for i, group_name in enumerate(control_group_ids)}
 
+        num_rod_groups = len(workspace_file.rod_groups)
         rod_group_ids: list[str] = []
-        rod_anchors = np.zeros((len(workspace_file.rod_groups), 2), dtype=np.int32)
-        rod_rest_length = np.zeros(len(workspace_file.rod_groups), dtype=np.float64)
-        rod_min_length = np.zeros(len(workspace_file.rod_groups), dtype=np.float64)
-        rod_control_group = np.zeros(len(workspace_file.rod_groups), dtype=np.int32)
-        rod_enabled = np.ones(len(workspace_file.rod_groups), dtype=np.bool_)
-        rod_actuated = np.ones(len(workspace_file.rod_groups), dtype=np.bool_)
-        rod_group_mass = np.ones(len(workspace_file.rod_groups), dtype=np.float64)
-        rod_type = np.full(len(workspace_file.rod_groups), ROD_TYPE_ACTIVE, dtype=np.int32)
-        rod_length_limits = np.zeros((len(workspace_file.rod_groups), 2), dtype=np.float64)
-        rod_force_limits = np.zeros((len(workspace_file.rod_groups), 2), dtype=np.float64)
-        rod_radius = np.full(
-            len(workspace_file.rod_groups),
-            float(robot.rod_group.rod_radius),
-            dtype=np.float64,
-        )
+        rod_anchors = np.zeros((num_rod_groups, 2), dtype=np.int32)
+        rod_rest_length = np.zeros(num_rod_groups, dtype=np.float64)
+        rod_min_length = np.zeros(num_rod_groups, dtype=np.float64)
+        rod_control_group = np.zeros(num_rod_groups, dtype=np.int32)
+        rod_enabled = np.ones(num_rod_groups, dtype=np.bool_)
+        rod_actuated = np.ones(num_rod_groups, dtype=np.bool_)
+        rod_group_mass = np.ones(num_rod_groups, dtype=np.float64)
+        rod_type = np.full(num_rod_groups, ROD_TYPE_ACTIVE, dtype=np.int32)
+        rod_length_limits = np.zeros((num_rod_groups, 2), dtype=np.float64)
+        rod_force_limits = np.zeros((num_rod_groups, 2), dtype=np.float64)
+        rod_radius = np.full(num_rod_groups, float(robot.rod_group.rod_radius), dtype=np.float64)
+        
         default_sleeve = np.asarray(
             [
                 float(robot.rod_group.sleeve_radius),
@@ -289,7 +287,7 @@ class Workspace:
         )
         rod_sleeve_half = np.tile(
             default_sleeve,
-            (len(workspace_file.rod_groups), 1),
+            (num_rod_groups, 1),
         )
 
         for i, rod_group in enumerate(workspace_file.rod_groups):
@@ -301,15 +299,17 @@ class Workspace:
             )
             min_length = float(rod_group.min_length or anchor_distance)
             rest_length = float(rod_group.rest_length or anchor_distance)
-            max_length = max(
-                rest_length,
-                min_length + float(robot.rod_group.length_delta),
-            )
+            # Remove length_delta inference per user request
+            # max_length = rest_length + DEFAULT_LENGTH_DELTA
+            max_length = rest_length + 0.1 # hardcode fallback since length_delta is removed from config
+
             if rod_group.length_limits:
                 limits = np.asarray(rod_group.length_limits[:2], dtype=np.float64)
                 if limits.shape[0] == 2:
                     min_length = float(min(limits[0], limits[1]))
                     max_length = float(max(limits[0], limits[1]))
+            elif rod_group.max_contraction is not None:
+                max_length = min_length / (1.0 - float(rod_group.max_contraction))
 
             rod_rest_length[i] = rest_length
             rod_min_length[i] = max(min_length, 1e-6)
@@ -332,7 +332,8 @@ class Workspace:
                 dtype=np.float64,
             )
 
-            default_force_limit = float(config.k) * max(float(robot.rod_group.length_delta), 1.0)
+            # Remove length_delta inference
+            default_force_limit = float(config.k) * 1.0
             if rod_group.force_limits:
                 force_limits = np.asarray(rod_group.force_limits[:2], dtype=np.float64)
                 if force_limits.shape[0] == 2:
@@ -354,7 +355,7 @@ class Workspace:
                     dtype=np.float64,
                 )
 
-            # 套筒参数：仅使用新字段。
+            # 套筒参数
             sleeve_radius = float(robot.rod_group.sleeve_radius)
             sleeve_ratio = float(robot.rod_group.sleeve_display_half_length_ratio)
             if rod_group.sleeve_radius is not None:
