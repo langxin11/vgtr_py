@@ -13,12 +13,13 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
 import math
 import time
 from pathlib import Path
+from typing import Annotated
 
 import numpy as np
+import typer
 import viser
 
 from vgtr_py.commands import load_workspace_from_paths
@@ -27,41 +28,47 @@ from vgtr_py.model import compile_workspace
 from vgtr_py.rendering import SceneRenderer
 from vgtr_py.sim import Simulator, advance_script_targets
 
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Runtime loop with manual / scripted / wave actuation."
-    )
-    parser.add_argument(
-        "--example", type=Path, default=Path("configs/crawling-bot.json")
-    )
-    parser.add_argument("--config", type=Path, default=None)
-    parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8080)
-    parser.add_argument("--render-hz", type=float, default=60.0)
-    parser.add_argument("--steps-per-frame", type=int, default=20)
-    parser.add_argument(
-        "--mode",
-        choices=["slider", "sine", "script"],
-        default="slider",
-        help=(
-            "slider = Viser GUI sliders (default); "
-            "sine = autonomous sinusoidal gait; "
-            "script = replay workspace script matrix."
-        ),
-    )
-    return parser.parse_args()
+app = typer.Typer(add_completion=False)
 
 
-def main() -> None:
-    args = parse_args()
-
+@app.command()
+def main(
+    example: Annotated[
+        Path,
+        typer.Option(help="Workspace JSON to load."),
+    ] = Path("configs/crawling-bot.json"),
+    config: Annotated[
+        Path | None,
+        typer.Option(help="Optional simulation config JSON. Defaults to built-in config."),
+    ] = None,
+    host: Annotated[
+        str,
+        typer.Option(help="Viser host."),
+    ] = "0.0.0.0",
+    port: Annotated[
+        int,
+        typer.Option(help="Viser port."),
+    ] = 8080,
+    render_hz: Annotated[
+        float,
+        typer.Option(help="Renderer refresh rate."),
+    ] = 60.0,
+    steps_per_frame: Annotated[
+        int,
+        typer.Option(help="Simulation steps to advance before each render."),
+    ] = 20,
+    mode: Annotated[
+        str,
+        typer.Option(help="slider = Viser GUI sliders; sine = autonomous gait; script = replay workspace script."),
+    ] = "slider",
+) -> None:
+    """启动支持多种作动模式的运行时仿真查看器。"""
     # ------------------------------------------------------------------
     # 1. Load workspace and compile simulation model / data.
     # ------------------------------------------------------------------
     workspace = load_workspace_from_paths(
-        config_path=args.config,
-        example_path=args.example,
+        config_path=config,
+        example_path=example,
     )
     model = compile_workspace(workspace)
     data = make_data(model)
@@ -70,14 +77,14 @@ def main() -> None:
     # ------------------------------------------------------------------
     # 2. Viser server + scene renderer.
     # ------------------------------------------------------------------
-    server = viser.ViserServer(host=args.host, port=args.port)
+    server = viser.ViserServer(host=host, port=port)
     renderer = SceneRenderer(server=server)
     renderer.setup_scene()
     renderer.render(workspace, anchor_pos=data.qpos)
 
-    url_host = "localhost" if args.host in {"0.0.0.0", "::"} else args.host
-    print(f"Viewer: http://{url_host}:{args.port}")
-    print(f"Control mode: {args.mode}")
+    url_host = "localhost" if host in {"0.0.0.0", "::"} else host
+    print(f"Viewer: http://{url_host}:{port}")
+    print(f"Control mode: {mode}")
     print("Press Ctrl+C to stop.\n")
 
     # ------------------------------------------------------------------
@@ -86,7 +93,7 @@ def main() -> None:
     num_cg = model.control_group_count
     slider_handles: list[viser.GuiSliderHandle[float]] = []
 
-    if args.mode == "slider" and num_cg > 0:
+    if mode == "slider" and num_cg > 0:
         # Create one Viser slider per control group.
         with server.gui.add_folder("Manual Actuation"):
             for i in range(num_cg):
@@ -100,7 +107,7 @@ def main() -> None:
                 slider_handles.append(slider)
         print(f"Created {num_cg} GUI slider(s). Drag them to actuate.")
 
-    elif args.mode == "sine":
+    elif mode == "sine":
         server.gui.add_markdown(
             "Running **autonomous sine-wave gait**. No manual input needed."
         )
@@ -110,7 +117,7 @@ def main() -> None:
         for i, f in enumerate(frequencies):
             print(f"  CG {i}: {f:.3f}")
 
-    elif args.mode == "script":
+    elif mode == "script":
         if model.script.size == 0:
             print("WARNING: Workspace has no script. Falling back to default targets.")
         server.gui.add_markdown("Replaying workspace **script** matrix.")
@@ -118,21 +125,21 @@ def main() -> None:
     # ------------------------------------------------------------------
     # 4. Simulation loop.
     # ------------------------------------------------------------------
-    frame_dt = 1.0 / args.render_hz
+    frame_dt = 1.0 / render_hz
     step_idx = 0
 
     try:
         while True:
             frame_start = time.perf_counter()
 
-            for _ in range(args.steps_per_frame):
+            for _ in range(steps_per_frame):
                 # ---- decide control input for this step ----------------
-                if args.mode == "slider":
+                if mode == "slider":
                     # Read slider values and pack into action array.
                     action = np.array([s.value for s in slider_handles], dtype=np.float64)
                     simulator.step(model, data, action=action)
 
-                elif args.mode == "sine":
+                elif mode == "sine":
                     # Open-loop sinusoidal pattern.
                     action = np.array(
                         [
@@ -144,7 +151,7 @@ def main() -> None:
                     simulator.step(model, data, action=action)
                     step_idx += 1
 
-                elif args.mode == "script":
+                elif mode == "script":
                     advance_script_targets(model, data)
                     simulator.step(model, data)
 
@@ -161,4 +168,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    app()
