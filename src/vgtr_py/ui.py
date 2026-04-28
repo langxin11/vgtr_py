@@ -34,12 +34,11 @@ from .commands import (
     set_selected_anchor_position,
     undo,
 )
-from .batch import BatchSimulator, BatchVGTRData, make_batch_data, reset_batch_data
-from .data import VGTRData, make_data, reset_data
 from .history import WorkspaceHistory
 from .model import VGTRModel, compile_workspace
 from .rendering import SceneRenderer
-from .sim import Simulator, advance_script_targets
+from .runtime.alloc import make_state
+from .runtime.session import RuntimeSession
 from .workspace import ROD_TYPE_ACTIVE, Workspace, WorkspaceSnapshot
 
 LOGGER = logging.getLogger(__name__)
@@ -59,8 +58,7 @@ class VgtrUiApp:
     workspace: Workspace
     renderer: SceneRenderer
     model: VGTRModel | None = None
-    data: VGTRData | None = None
-    simulator: Simulator = field(default_factory=Simulator)
+    session: RuntimeSession | None = None
     render_hz: float = 60.0
     simulation_steps_per_second: float = 1000.0
     current_config_path: Path | None = None
@@ -102,8 +100,7 @@ class VgtrUiApp:
 
     # 批量环境
     _batch_mode: bool = False
-    _batch_data: BatchVGTRData | None = None
-    _batch_simulator: BatchSimulator = field(default_factory=BatchSimulator)
+    _batch_session: RuntimeSession | None = None
     _batch_action: np.ndarray | None = None
 
     # 批量环境 UI 句柄
@@ -117,8 +114,12 @@ class VgtrUiApp:
     def __post_init__(self) -> None:
         if self.model is None:
             self.model = compile_workspace(self.workspace)
-        if self.data is None:
-            self.data = make_data(self.model)
+        if self.session is None:
+            self.session = RuntimeSession(
+                model=self.model,
+                state=make_state(self.model, num_envs=1),
+                control_mode="direct",
+            )
 
     def start(self) -> None:
         """初始化场景和 GUI，并启动后台仿真循环。"""
@@ -138,10 +139,10 @@ class VgtrUiApp:
     def refresh(self) -> None:
         """立即刷新渲染和状态栏。"""
         with self._lock:
-            if self._batch_mode and self._batch_data is not None:
+            if self._batch_mode and self._batch_session is not None:
                 self.renderer.render_batch(
                     self.workspace,
-                    batch_qpos=self._batch_data.qpos,
+                    batch_qpos=self._batch_session.state.qpos,
                     selected_env=int(self._env_select_slider.value) if self._env_select_slider is not None else 0,
                     show_only_selected=bool(self._hide_others_chk.value) if self._hide_others_chk is not None else False,
                     spacing=float(self._spacing_slider.value) if self._spacing_slider is not None else 3.0,
@@ -203,9 +204,13 @@ class VgtrUiApp:
         Returns:
             锚点坐标数组，形状 (anchor_count, 3)。
         """
-        if self.data is None:
+        if self.session is None:
             return self.workspace.topology.anchor_pos
-        return self.workspace.topology.anchor_pos if self.workspace.ui.editing else self.data.qpos
+        return (
+            self.workspace.topology.anchor_pos
+            if self.workspace.ui.editing
+            else self.session.state.qpos[0]
+        )
 
     def _format_index_summary(self, indices: list[int]) -> str:
         """格式化索引摘要，避免长列表淹没状态面板。"""
@@ -223,20 +228,24 @@ class VgtrUiApp:
             n = int(self._num_envs_input.value) if self._num_envs_input is not None else 4
             self._rebuild_batch_runtime(n)
         else:
-            self.data = make_data(self.model)
+            self.session = RuntimeSession(
+                model=self.model,
+                state=make_state(self.model, num_envs=1),
+                control_mode="direct",
+            )
 
     def _reset_runtime_state(self) -> None:
         """重置仿真数据到初始状态；若未初始化则先重建。"""
         if self.model is None:
             self._rebuild_runtime()
             return
-        if self._batch_mode and self._batch_data is not None:
-            reset_batch_data(self.model, self._batch_data)
+        if self._batch_mode and self._batch_session is not None:
+            self._batch_session.reset()
             return
-        if self.data is None:
+        if self.session is None:
             self._rebuild_runtime()
             return
-        reset_data(self.model, self.data)
+        self.session.reset()
 
     def _run_simulation_steps(self, n_steps: int, *, scripting: bool) -> None:
         """在后台连续推进若干仿真步。
@@ -245,16 +254,20 @@ class VgtrUiApp:
             n_steps: 步数。
             scripting: 是否在此步进过程中推进脚本动作。
         """
-        if self._batch_mode and self._batch_data is not None and self.model is not None:
+        if self._batch_mode and self._batch_session is not None:
             for _ in range(n_steps):
-                self._batch_simulator.step(self.model, self._batch_data, self._batch_action)
+                if scripting:
+                    self._batch_session.advance_script_targets()
+                    self._batch_session.step_batch(None)
+                else:
+                    self._batch_session.step_batch(self._batch_action)
             return
-        if self.model is None or self.data is None or n_steps <= 0:
+        if self.session is None or n_steps <= 0:
             return
         for _ in range(n_steps):
             if scripting:
-                advance_script_targets(self.model, self.data)
-            self.simulator.step(self.model, self.data)
+                self.session.advance_script_targets()
+            self.session.step_batch(None)
 
     def _set_batch_mode(self, enabled: bool) -> None:
         """切换批量渲染模式。"""
@@ -278,7 +291,7 @@ class VgtrUiApp:
                 self._editing_checkbox.disabled = False
             if self._move_anchor_checkbox is not None:
                 self._move_anchor_checkbox.disabled = False
-            self._batch_data = None
+            self._batch_session = None
             self._batch_action = None
             self.renderer._clear_batch_handles()
         self.refresh()
@@ -287,7 +300,11 @@ class VgtrUiApp:
         """根据当前 model 重建批量运行时。"""
         if self.model is None:
             return
-        self._batch_data = make_batch_data(self.model, num_envs)
+        self._batch_session = RuntimeSession(
+            model=self.model,
+            state=make_state(self.model, num_envs=num_envs),
+            control_mode="direct",
+        )
         self._batch_action = self._make_batch_action()
         if self._env_select_slider is not None:
             self._env_select_slider.max = float(max(num_envs - 1, 0))
@@ -303,7 +320,7 @@ class VgtrUiApp:
             dim = cg
         else:
             dim = 1
-        n = self._batch_data.num_envs if self._batch_data is not None else 1
+        n = self._batch_session.num_envs if self._batch_session is not None else 1
         actions = np.zeros((n, dim), dtype=np.float64)
         if cg:
             actions[:, 0] = np.linspace(0.0, 1.0, n, dtype=np.float64)
@@ -506,8 +523,8 @@ class VgtrUiApp:
         @actuation_mode.on_update
         def _(_):
             with self._lock:
-                if self.data is not None and actuation_mode.value == "control-groups":
-                    self.data.rod_target_override.fill(np.nan)
+                if self.session is not None and actuation_mode.value == "control-groups":
+                    self.session.state.rod_target_override[0].fill(np.nan)
                 self._refresh_actuation_ui()
                 self.refresh()
 
@@ -701,7 +718,7 @@ class VgtrUiApp:
         if self._actuation_status_markdown is not None:
             self._actuation_status_markdown.content = "Ready."
 
-        if self.data is None or self.model is None:
+        if self.session is None or self.model is None:
             self._actuation_folder.visible = False
             return
 
@@ -719,7 +736,7 @@ class VgtrUiApp:
 
     def _build_control_group_sliders(self) -> None:
         """渲染控制组滑块，并在数量过大时降级为摘要提示。"""
-        if self.data is None:
+        if self.session is None:
             return
         num_channels = self.workspace.script.num_channels
         if num_channels == 0:
@@ -741,22 +758,22 @@ class VgtrUiApp:
                     min=0.0,
                     max=1.0,
                     step=0.01,
-                    initial_value=float(self.data.ctrl_target[i]),
+                    initial_value=float(self.session.state.ctrl_target[0, i]),
                 )
 
                 @slider.on_update
                 def _(_, idx=i, s=slider):
                     with self._lock:
-                        if self.data is not None:
-                            self.data.ctrl_target[idx] = s.value
-                            if self.data.rod_target_override.shape[0]:
-                                self.data.rod_target_override.fill(np.nan)
+                        if self.session is not None:
+                            self.session.state.ctrl_target[0, idx] = s.value
+                            if self.session.state.rod_target_override.shape[1]:
+                                self.session.state.rod_target_override[0].fill(np.nan)
 
                 self._control_sliders.append(slider)
 
     def _build_per_rod_sliders(self) -> None:
         """渲染按杆件直接控制的滑块。"""
-        if self.data is None or self.model is None:
+        if self.session is None or self.model is None:
             return
         active_indices = np.flatnonzero(self.model.rod_type == ROD_TYPE_ACTIVE).tolist()
         if not active_indices:
@@ -788,9 +805,9 @@ class VgtrUiApp:
             for rod_index in slider_indices:
                 lo, hi = self.model.rod_length_limits[rod_index]
                 current = float(
-                    self.data.rod_target_override[rod_index]
-                    if np.isfinite(self.data.rod_target_override[rod_index])
-                    else self.data.rod_target_length[rod_index]
+                    self.session.state.rod_target_override[0, rod_index]
+                    if np.isfinite(self.session.state.rod_target_override[0, rod_index])
+                    else self.session.state.rod_target_length[0, rod_index]
                 )
                 
                 # Convert current length to 0-1 normalized value: 0=min_length(lo), 1=max_length(hi)
@@ -807,8 +824,8 @@ class VgtrUiApp:
                 @slider.on_update
                 def _(_, idx=rod_index, s=slider, min_l=float(lo), max_l=float(hi)):
                     with self._lock:
-                        if self.data is not None:
-                            self.data.rod_target_override[idx] = min_l + s.value * (max_l - min_l)
+                        if self.session is not None:
+                            self.session.state.rod_target_override[0, idx] = min_l + s.value * (max_l - min_l)
 
                 self._control_sliders.append(slider)
 
@@ -901,19 +918,19 @@ class VgtrUiApp:
                         # 同步滑块位置（如果是脚本在驱动）
                         if (
                             self._scripting_toggle.value
-                            and self.data is not None
+                            and self.session is not None
                             and (
                                 self._actuation_mode_dropdown is None
                                 or self._actuation_mode_dropdown.value == "control-groups"
                             )
                         ):
                             for i, s in enumerate(self._control_sliders):
-                                s.value = float(self.data.ctrl_target[i])
+                                s.value = float(self.session.state.ctrl_target[0, i])
 
-                    if self._batch_mode and self._batch_data is not None:
+                    if self._batch_mode and self._batch_session is not None:
                         self.renderer.render_batch(
                             self.workspace,
-                            batch_qpos=self._batch_data.qpos,
+                            batch_qpos=self._batch_session.state.qpos,
                             selected_env=int(self._env_select_slider.value) if self._env_select_slider is not None else 0,
                             show_only_selected=bool(self._hide_others_chk.value) if self._hide_others_chk is not None else False,
                             spacing=float(self._spacing_slider.value) if self._spacing_slider is not None else 3.0,
@@ -1051,16 +1068,26 @@ class VgtrUiApp:
         n_c = self.workspace.script.num_channels
         sel_a = np.flatnonzero(self.workspace.ui.anchor_status == 2).tolist()
         sel_r = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
-        step_count = self.data.step_count if self.data is not None else 0
+        ctrl_target = np.zeros((0,), dtype=np.float64)
+        if self._batch_mode and self._batch_session is not None:
+            selected_env = int(self._env_select_slider.value) if self._env_select_slider is not None else 0
+            selected_env = max(0, min(selected_env, self._batch_session.num_envs - 1))
+            step_count = int(self._batch_session.state.step_count[selected_env])
+            ctrl_target = self._batch_session.state.ctrl_target[selected_env]
+        elif self.session is not None:
+            step_count = int(self.session.state.step_count[0])
+            ctrl_target = self.session.state.ctrl_target[0]
+        else:
+            step_count = 0
         sim_state = "running" if self.workspace.ui.simulate else "paused"
         effective_hz = int(self.simulation_steps_per_second) if self.workspace.ui.simulate else 0
         realtime_factor = self.simulation_steps_per_second * self.workspace.config.h
         ctrl_summary = "[]"
-        if self.data is not None and self.data.ctrl_target.size:
-            ctrl_values = [round(float(v), 3) for v in self.data.ctrl_target[: min(4, self.data.ctrl_target.size)]]
+        if ctrl_target.size:
+            ctrl_values = [round(float(v), 3) for v in ctrl_target[: min(4, ctrl_target.size)]]
             ctrl_summary = f"{ctrl_values}"
-            if self.data.ctrl_target.size > 4:
-                ctrl_summary += f" +{self.data.ctrl_target.size - 4} more"
+            if ctrl_target.size > 4:
+                ctrl_summary += f" +{ctrl_target.size - 4} more"
 
         self._status_markdown.content = (
             f"**State:** {sim_state} | **Step:** {step_count} | **Rate:** {effective_hz} steps/s | "
@@ -1084,7 +1111,11 @@ def create_app(
         example_path=Path(example_path),
     )
     model = compile_workspace(workspace)
-    data = make_data(model)
+    session = RuntimeSession(
+        model=model,
+        state=make_state(model, num_envs=1),
+        control_mode="direct",
+    )
     server = viser.ViserServer(host=host, port=port)
     renderer = SceneRenderer(server=server)
     return VgtrUiApp(
@@ -1092,7 +1123,7 @@ def create_app(
         workspace=workspace,
         renderer=renderer,
         model=model,
-        data=data,
+        session=session,
         current_config_path=Path(config_path) if config_path is not None else None,
         current_example_path=Path(example_path),
     )
