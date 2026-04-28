@@ -212,3 +212,57 @@ def test_refresh_actuation_ui_per_rod_mode_builds_selected_rod_sliders() -> None
     app._refresh_actuation_ui()
 
     assert created_labels == ["Rod 0", "Rod 1"]
+
+
+def test_set_batch_mode_disables_editing_controls() -> None:
+    workspace = make_workspace()
+    workspace.ui.editing = True
+    app = VgtrUiApp(server=SimpleNamespace(), workspace=workspace, renderer=SimpleNamespace())
+    app._num_envs_input = SimpleNamespace(value=3)
+    app._env_select_slider = SimpleNamespace(max=0.0)
+    app._editing_checkbox = SimpleNamespace(value=True, disabled=False)
+    app._move_anchor_checkbox = SimpleNamespace(value=True, disabled=False)
+    app._edit_tools_folder = SimpleNamespace(visible=True)
+    app.refresh = lambda: None
+
+    app._set_batch_mode(True)
+
+    assert app._batch_mode is True
+    assert workspace.ui.editing is False
+    assert app._editing_checkbox.value is False
+    assert app._editing_checkbox.disabled is True
+    assert app._move_anchor_checkbox.value is False
+    assert app._move_anchor_checkbox.disabled is True
+    assert app._edit_tools_folder.visible is False
+
+
+def test_set_batch_mode_false_restores_editing_controls() -> None:
+    workspace = make_workspace()
+    app = VgtrUiApp(server=SimpleNamespace(), workspace=workspace, renderer=SimpleNamespace())
+    app._batch_mode = True
+    app._batch_data = SimpleNamespace()
+    app._batch_action = np.zeros((1, 1))
+    app._editing_checkbox = SimpleNamespace(value=False, disabled=True)
+    app._move_anchor_checkbox = SimpleNamespace(value=False, disabled=True)
+    app.renderer = SimpleNamespace(_clear_batch_handles=lambda: None)
+    app.refresh = lambda: None
+
+    app._set_batch_mode(False)
+
+    assert app._batch_mode is False
+    assert app._batch_data is None
+    assert app._batch_action is None
+    assert app._editing_checkbox.disabled is False
+    assert app._move_anchor_checkbox.disabled is False
+
+
+def test_rebuild_batch_runtime_updates_select_max() -> None:
+    workspace = make_workspace()
+    app = VgtrUiApp(server=SimpleNamespace(), workspace=workspace, renderer=SimpleNamespace())
+    app._env_select_slider = SimpleNamespace(max=0.0)
+
+    app._rebuild_batch_runtime(5)
+
+    assert app._batch_data is not None
+    assert app._batch_data.num_envs == 5
+    assert app._env_select_slider.max == 4.0

@@ -34,6 +34,7 @@ from .commands import (
     set_selected_anchor_position,
     undo,
 )
+from .batch import BatchSimulator, BatchVGTRData, make_batch_data, reset_batch_data
 from .data import VGTRData, make_data, reset_data
 from .history import WorkspaceHistory
 from .model import VGTRModel, compile_workspace
@@ -99,6 +100,20 @@ class VgtrUiApp:
     _simulation_step_accumulator: float = 0.0
     _last_simulation_tick_time: float | None = None
 
+    # 批量环境
+    _batch_mode: bool = False
+    _batch_data: BatchVGTRData | None = None
+    _batch_simulator: BatchSimulator = field(default_factory=BatchSimulator)
+    _batch_action: np.ndarray | None = None
+
+    # 批量环境 UI 句柄
+    _batch_mode_chk: viser.GuiCheckboxHandle | None = None
+    _num_envs_input: viser.GuiNumberHandle | None = None
+    _env_select_slider: viser.GuiSliderHandle[float] | None = None
+    _hide_others_chk: viser.GuiCheckboxHandle | None = None
+    _track_selected_chk: viser.GuiCheckboxHandle | None = None
+    _spacing_slider: viser.GuiSliderHandle[float] | None = None
+
     def __post_init__(self) -> None:
         if self.model is None:
             self.model = compile_workspace(self.workspace)
@@ -123,7 +138,17 @@ class VgtrUiApp:
     def refresh(self) -> None:
         """立即刷新渲染和状态栏。"""
         with self._lock:
-            self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
+            if self._batch_mode and self._batch_data is not None:
+                self.renderer.render_batch(
+                    self.workspace,
+                    batch_qpos=self._batch_data.qpos,
+                    selected_env=int(self._env_select_slider.value) if self._env_select_slider is not None else 0,
+                    show_only_selected=bool(self._hide_others_chk.value) if self._hide_others_chk is not None else False,
+                    spacing=float(self._spacing_slider.value) if self._spacing_slider is not None else 3.0,
+                    track_selected=bool(self._track_selected_chk.value) if self._track_selected_chk is not None else True,
+                )
+            else:
+                self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
             self._update_status()
 
     def stop(self) -> None:
@@ -194,11 +219,21 @@ class VgtrUiApp:
     def _rebuild_runtime(self) -> None:
         """根据当前工作区重新编译仿真模型与数据。"""
         self.model = compile_workspace(self.workspace)
-        self.data = make_data(self.model)
+        if self._batch_mode:
+            n = int(self._num_envs_input.value) if self._num_envs_input is not None else 4
+            self._rebuild_batch_runtime(n)
+        else:
+            self.data = make_data(self.model)
 
     def _reset_runtime_state(self) -> None:
         """重置仿真数据到初始状态；若未初始化则先重建。"""
-        if self.model is None or self.data is None:
+        if self.model is None:
+            self._rebuild_runtime()
+            return
+        if self._batch_mode and self._batch_data is not None:
+            reset_batch_data(self.model, self._batch_data)
+            return
+        if self.data is None:
             self._rebuild_runtime()
             return
         reset_data(self.model, self.data)
@@ -210,12 +245,69 @@ class VgtrUiApp:
             n_steps: 步数。
             scripting: 是否在此步进过程中推进脚本动作。
         """
+        if self._batch_mode and self._batch_data is not None and self.model is not None:
+            for _ in range(n_steps):
+                self._batch_simulator.step(self.model, self._batch_data, self._batch_action)
+            return
         if self.model is None or self.data is None or n_steps <= 0:
             return
         for _ in range(n_steps):
             if scripting:
                 advance_script_targets(self.model, self.data)
             self.simulator.step(self.model, self.data)
+
+    def _set_batch_mode(self, enabled: bool) -> None:
+        """切换批量渲染模式。"""
+        if enabled == self._batch_mode:
+            return
+        self._batch_mode = enabled
+        if enabled:
+            n = int(self._num_envs_input.value) if self._num_envs_input is not None else 4
+            self._set_editing_state(False)
+            if self._editing_checkbox is not None:
+                self._editing_checkbox.value = False
+                self._editing_checkbox.disabled = True
+            if self._move_anchor_checkbox is not None:
+                self._move_anchor_checkbox.value = False
+                self._move_anchor_checkbox.disabled = True
+            if self._edit_tools_folder is not None:
+                self._edit_tools_folder.visible = False
+            self._rebuild_batch_runtime(n)
+        else:
+            if self._editing_checkbox is not None:
+                self._editing_checkbox.disabled = False
+            if self._move_anchor_checkbox is not None:
+                self._move_anchor_checkbox.disabled = False
+            self._batch_data = None
+            self._batch_action = None
+            self.renderer._clear_batch_handles()
+        self.refresh()
+
+    def _rebuild_batch_runtime(self, num_envs: int) -> None:
+        """根据当前 model 重建批量运行时。"""
+        if self.model is None:
+            return
+        self._batch_data = make_batch_data(self.model, num_envs)
+        self._batch_action = self._make_batch_action()
+        if self._env_select_slider is not None:
+            self._env_select_slider.max = float(max(num_envs - 1, 0))
+
+    def _make_batch_action(self) -> np.ndarray:
+        """为每个 env 生成批量动作。"""
+        if self.model is None:
+            return np.zeros((0,), dtype=np.float64)
+        cg = self.model.control_group_count
+        if self.model.projection_anchor_indices.size:
+            dim = int(self.model.projection_anchor_indices.shape[0] * 3)
+        elif cg:
+            dim = cg
+        else:
+            dim = 1
+        n = self._batch_data.num_envs if self._batch_data is not None else 1
+        actions = np.zeros((n, dim), dtype=np.float64)
+        if cg:
+            actions[:, 0] = np.linspace(0.0, 1.0, n, dtype=np.float64)
+        return actions
 
     def _build_gui(self) -> None:
         """构建优化后的参数化控制面板。"""
@@ -329,6 +421,21 @@ class VgtrUiApp:
                 step_once = self.server.gui.add_button("Step Once")
                 reset_runtime = self.server.gui.add_button("Reset Physics State")
                 self._status_markdown = self.server.gui.add_markdown("status")
+
+            # 批量环境
+            with self.server.gui.add_folder("Environment", expand_by_default=False):
+                batch_mode = self.server.gui.add_checkbox("Batch Mode", False)
+                num_envs_input = self.server.gui.add_number(
+                    "Num Envs", 4, min=1, max=256, step=1,
+                )
+                env_select = self.server.gui.add_slider(
+                    "Select", 0, 3, step=1, initial_value=0,
+                )
+                hide_others = self.server.gui.add_checkbox("Hide others", False)
+                track_selected = self.server.gui.add_checkbox("Track selected", True)
+                spacing_slider = self.server.gui.add_slider(
+                    "Grid Spacing", 1.0, 10.0, step=0.5, initial_value=3.0,
+                )
 
         # --- Tab 3: Actuation (主动驱动测试) ---
         with tab_group.add_tab("Actuation", icon="device-gamepad-2"):
@@ -537,6 +644,50 @@ class VgtrUiApp:
         self.renderer.on_anchor_click = self._on_anchor_click
         self.renderer.on_rod_group_click = self._on_rod_group_click
         self._select_mode = select_mode
+
+        # 批量环境句柄
+        self._batch_mode_chk = batch_mode
+        self._num_envs_input = num_envs_input
+        self._env_select_slider = env_select
+        self._hide_others_chk = hide_others
+        self._track_selected_chk = track_selected
+        self._spacing_slider = spacing_slider
+
+        # --- 批量环境回调 ---
+
+        @batch_mode.on_update
+        def _(checked: bool) -> None:
+            with self._lock:
+                self._set_batch_mode(checked)
+
+        @num_envs_input.on_update
+        def _(_):
+            with self._lock:
+                n = int(num_envs_input.value)
+                self._env_select_slider.max = float(max(n - 1, 0))  # type: ignore[union-attr]
+                if self._batch_mode:
+                    self._rebuild_batch_runtime(n)
+                    self.refresh()
+
+        @env_select.on_update
+        def _(_):
+            if self._batch_mode:
+                self.refresh()
+
+        @hide_others.on_update
+        def _(_):
+            if self._batch_mode:
+                self.refresh()
+
+        @track_selected.on_update
+        def _(_):
+            if self._batch_mode:
+                self.refresh()
+
+        @spacing_slider.on_update
+        def _(_):
+            if self._batch_mode:
+                self.refresh()
 
     def _refresh_actuation_ui(self) -> None:
         """动态刷新驱动控制 UI，根据模式展示控制组或按杆件滑块。"""
@@ -759,7 +910,17 @@ class VgtrUiApp:
                             for i, s in enumerate(self._control_sliders):
                                 s.value = float(self.data.ctrl_target[i])
 
-                    self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
+                    if self._batch_mode and self._batch_data is not None:
+                        self.renderer.render_batch(
+                            self.workspace,
+                            batch_qpos=self._batch_data.qpos,
+                            selected_env=int(self._env_select_slider.value) if self._env_select_slider is not None else 0,
+                            show_only_selected=bool(self._hide_others_chk.value) if self._hide_others_chk is not None else False,
+                            spacing=float(self._spacing_slider.value) if self._spacing_slider is not None else 3.0,
+                            track_selected=bool(self._track_selected_chk.value) if self._track_selected_chk is not None else True,
+                        )
+                    else:
+                        self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
                     self._update_status()
                 else:
                     self._simulation_step_accumulator = 0.0
@@ -812,6 +973,20 @@ class VgtrUiApp:
             self._show_control_group_checkbox.value = self.workspace.ui.show_control_group
         if self._edit_tools_folder is not None:
             self._edit_tools_folder.visible = self.workspace.ui.editing
+        if self._batch_mode:
+            if self._editing_checkbox is not None:
+                self._editing_checkbox.value = False
+                self._editing_checkbox.disabled = True
+            if self._move_anchor_checkbox is not None:
+                self._move_anchor_checkbox.value = False
+                self._move_anchor_checkbox.disabled = True
+            if self._edit_tools_folder is not None:
+                self._edit_tools_folder.visible = False
+        else:
+            if self._editing_checkbox is not None:
+                self._editing_checkbox.disabled = False
+            if self._move_anchor_checkbox is not None:
+                self._move_anchor_checkbox.disabled = False
 
         # 同步物理滑块
         if self._k_slider is not None:
@@ -856,9 +1031,12 @@ class VgtrUiApp:
 
         Returns:
             当仿真开启且非编辑模式，或在编辑模式下正在拖拽锚点/整体时为 True。
+            批量模式下，simulate 为 True 即步进。
         """
         if not self.workspace.ui.simulate:
             return False
+        if self._batch_mode:
+            return True
         if not self.workspace.ui.editing:
             return True
         return self._is_transform_dragging and (
