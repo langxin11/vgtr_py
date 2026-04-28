@@ -1,7 +1,7 @@
 # ⚙️ vgtr-py
 
 <p align="center">
-  <strong>变几何桁架机器人 (VGTR) 交互式设计与预览仿真环境</strong>
+  <strong>变几何桁架机器人 (VGTR) 运行时、批量仿真器与可选查看器</strong>
 </p>
 
 <p align="center">
@@ -17,9 +17,12 @@
 
 ---
 
-`vgtr-py` 是一个面向 Python 的**变几何桁架机器人 (Variable-Geometry Truss Robot, VGTR)** 编辑器与预览仿真器。
+`vgtr-py` 是一个面向 Python 的**变几何桁架机器人 (Variable-Geometry Truss Robot, VGTR)** 运行时、批量仿真器与可选查看器。
 
-它在 [PneuMesh](https://github.com/riceroll/pneumesh) 的原型基础上，针对 VGTR 语义进行了全新的架构迁移。通过**锚点 (Anchors)**、**杆组 (Rod Groups)** 与 **控制组 (Control Groups)** 描述机器人的结构，并提供了基于物理受力的实时行为预览。
+它在 [PneuMesh](https://github.com/riceroll/pneumesh) 的原型基础上，针对
+VGTR 语义进行了全新的架构迁移。通过**锚点 (Anchors)**、**杆组 (Rod
+Groups)** 与 **控制组 (Control Groups)** 描述机器人的结构，当前重点是
+可脚本化的单环境与批量仿真。
 
 ## 🎯 核心特性
 
@@ -29,7 +32,8 @@
     - **地面模型**：实现基于穿透深度的弹簧-阻尼惩罚力反馈。
     - **库仑摩擦**：支持受正压力约束的平滑库仑摩擦模型，模拟真实的蹬地爬行。
 - ⚙️ **真实执行器模型**：杆件类型化（被动刚性 / 主动伸缩 / 柔性），支持行程限制、出力限制与堵转检测，杜绝无限拉伸的“橡皮筋”行为。
-- 🤖 **RL 就绪环境**：`VGTREnv` 提供 Gymnasium 风格 API（`reset` / `step`），观测空间包含杆级轴力、应变与堵转标志。
+- 🤖 **RL 就绪运行时**：`RuntimeSession`、`VGTRGymEnv` 与 `VGTRVectorEnv`
+  提供可脚本化的单环境与批量 API，观测空间包含杆级轴力、应变与堵转标志。
 - 🎨 **移动副机械渲染**：采用三段式杆组渲染（套筒 + 双活塞杆），直观呈现杆件伸缩过程中的机械滑动感。
 - 🎛️ **实时参数化控制**：
     - **在线调优**：支持在仿真运行中实时调节刚度、阻尼、摩擦系数等物理参数。
@@ -58,8 +62,8 @@
 - [x] 开发三段式活塞杆机械渲染系统
 - [x] 建立基于快照的全局历史记录系统
 - [x] 核心模块已有单元测试并当前全部通过
-- [x] Gymnasium 兼容环境 `VGTREnv` 与可行性投影层（部分实现）
-- [x] CPU 向量化批量环境 `VectorVGTREnv` 基线
+- [x] Gymnasium 兼容运行时适配层与可行性投影层
+- [x] CPU 向量化批量环境 `VGTRVectorEnv` 基线
 - [ ] 交互式动作脚本序列编辑器 (Action Sequence Editor)
 - [ ] GPU 级大规模并行仿真后端
 
@@ -79,7 +83,19 @@ git clone https://github.com/langxin11/vgtr_py.git
 cd vgtr_py
 uv sync --dev
 
-# 2. 启动交互式预览器
+# 2. 运行最小批量仿真示例
+uv run python examples/vector_env_minimal.py
+```
+
+如果你想看更底层的 runtime 脚本：
+
+```bash
+uv run python examples/sim_minimal.py
+```
+
+交互式查看器现在降级为可选调试工具：
+
+```bash
 uv run vgtr-py serve
 ```
 

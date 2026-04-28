@@ -5,7 +5,7 @@
 ## 设计理念
 
 - **轻量**：纯 Python + NumPy，零深度学习框架依赖即可运行完整仿真
-- **分层**：严格区分编辑态（Workspace）与运行态（Model/Data/Simulator），建模层与求解层解耦
+- **分层**：严格区分编辑态（Workspace）与运行态（Model/RuntimeState/RuntimeSession），建模层与求解层解耦
 - **真实**：杆件类型化（被动/主动/弹性），引入行程/出力限制与堵转检测，拒绝"橡皮网"假物理
 - **可扩展**：同一份模型可驱动单环境、批量环境，为 RL 训练提供干净接口
 
@@ -20,23 +20,23 @@
                           | VGTRModel |  只读静态模型（拓扑、物理参数、脚本）
                           +-----+-----+
                                 |
+                          make_state(num_envs=N)
+                                |
+                          +-----v------+
+                          | RuntimeState|  env-major 动态状态 (N, ...)
+                          +-----+------+
+                                |
+                         RuntimeSession
+                      step / observe / info
+                                |
               +-----------------+------------------+
               |                                    |
-         make_data()                       make_batch_data(N)
-              |                                    |
-        +-----v-----+                      +-------v--------+
-        |  VGTRData |                      | BatchVGTRData  |  (num_envs, ...)
-        +-----+-----+                      +-------+--------+
-              |                                    |
-       Simulator.step()                   BatchSimulator.step()
-         (sim.py)                            (batch.py)
-              |                                    |
-        +-----v-----+                      +-------v--------+
-        |   VGTREnv |                      | VectorVGTREnv  |  Gymnasium 接口
-        +-----------+                      +----------------+
+        +-----v------+                      +------v-------+
+        | VGTRGymEnv |                      | VGTRVectorEnv|  Gymnasium 接口
+        +------------+                      +--------------+
 
         投影层（可选，降维控制）：
-        project_anchor_targets() / _project_anchor_targets_batch()
+        runtime.project.project_anchor_targets()
         目标锚点位置 → 控制组目标值
 ```
 
@@ -46,12 +46,8 @@
 |------|------|
 | `workspace` | 工作区容器：拓扑、物理参数、脚本、UI 状态 |
 | `model` | 编译 workspace → 不可变 `VGTRModel`，含预计算的杆组索引、行程/力限、控制组映射 |
-| `data` | 单环境运行时状态 `VGTRData`：qpos, qvel, forces, ctrl, rod 统计量 |
-| `sim` | 无状态仿真步进 `Simulator.step(model, data, action)` |
-| `batch` | 批量运行时 `BatchVGTRData` + `BatchSimulator`，CPU NumPy 向量化 |
-| `env` | 单环境 Gymnasium 包装 `VGTREnv` |
-| `vector_env` | 批量 Gymnasium 包装 `VectorVGTREnv`，支持 `(N, action_dim)` 动作输入 |
-| `projection` | 锚点目标位置 → 控制组目标值的可行性投影 |
+| `runtime` | 统一运行时内核：`RuntimeState`、`RuntimeSession`、projection/observation/reward helpers |
+| `adapters` | Gymnasium 适配层：`VGTRGymEnv` / `VGTRVectorEnv` |
 | `kinematics` | 杆组派生几何：方向、中点、套筒姿态（position + quat） |
 | `topology` | 图论操作：增删锚点/杆组、拖拽、固定、控制组分配 |
 | `commands` | UI 命令层：将业务指令翻译为拓扑操作，自动接管 undo/redo |

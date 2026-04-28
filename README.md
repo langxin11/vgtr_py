@@ -1,7 +1,7 @@
 # ⚙️ vgtr-py
 
 <p align="center">
-  <strong>Variable-Geometry Truss Robot (VGTR) Interactive Design & Preview Simulator</strong>
+  <strong>Variable-Geometry Truss Robot (VGTR) Runtime, Batched Simulator, and Optional Viewer</strong>
 </p>
 
 <p align="center">
@@ -17,9 +17,14 @@
 
 ---
 
-`vgtr-py` is a Python-based editor and preview simulator for **Variable-Geometry Truss Robots (VGTR)**.
+`vgtr-py` is a Python-based runtime, batched simulator, and optional viewer for
+**Variable-Geometry Truss Robots (VGTR)**.
 
-Building upon the prototypes of [PneuMesh](https://github.com/riceroll/pneumesh), it introduces a complete architectural migration tailored for VGTR semantics. It uses **Anchors**, **Rod Groups**, and **Control Groups** to describe robot structures and provides real-time behavior previews driven by physical forces.
+Building upon the prototypes of [PneuMesh](https://github.com/riceroll/pneumesh),
+it introduces a complete architectural migration tailored for VGTR semantics.
+It uses **Anchors**, **Rod Groups**, and **Control Groups** to describe robot
+structures, with the main focus now on scriptable single-env and batched
+simulation.
 
 ## 🎯 Core Features
 
@@ -29,7 +34,9 @@ Building upon the prototypes of [PneuMesh](https://github.com/riceroll/pneumesh)
     - **Ground Model**: Penalty-based spring-damper feedback for robust ground contact.
     - **Coulomb Friction**: Smoothed Coulomb friction model constrained by normal force, enabling realistic crawling and bracing behaviors.
 - ⚙️ **Realistic Actuator Model**: Type-aware rods (Passive Rigid / Active Actuator / Soft Elastic) with travel limits, force limits, and stall detection—no more infinitely stretchable "rubber bands".
-- 🤖 **RL-Ready Environment**: `VGTREnv` exposes a Gymnasium-style API (`reset` / `step`), with observations including rod-level axial forces, strains, and stall flags.
+- 🤖 **RL-Ready Runtime**: `RuntimeSession`, `VGTRGymEnv`, and `VGTRVectorEnv`
+  expose scriptable single-env and batched APIs, with observations including
+  rod-level axial forces, strains, and stall flags.
 - 🎨 **Mechanical Prismatic Rendering**: A three-part rod rendering system (Sleeve + Dual internal rods) that visually represents the sliding motion of prismatic joints.
 - 🎛️ **Real-time Parameter Tuning**:
     - **Live Tuning**: Dynamically adjust stiffness, damping, and friction coefficients during simulation.
@@ -58,8 +65,8 @@ The project employs an isolation strategy of "Graph Theory Internals vs. Robotic
 - [x] Develop three-part mechanical prismatic joint rendering
 - [x] Establish a global Snapshot-based history system
 - [x] Comprehensive unit tests for core modules (all currently passing)
-- [x] Gymnasium-compatible `VGTREnv` and projection layer (partial)
-- [x] CPU-vectorized `VectorVGTREnv` baseline for batched rollout
+- [x] Gymnasium-compatible runtime adapters and projection layer
+- [x] CPU-vectorized `VGTRVectorEnv` baseline for batched rollout
 - [ ] Interactive Action Sequence Editor (Script Grid Editor)
 - [ ] GPU-scale parallel simulation backend for large-scale RL training
 
@@ -79,7 +86,19 @@ git clone https://github.com/langxin11/vgtr_py.git
 cd vgtr_py
 uv sync --dev
 
-# 2. Start the interactive viewer
+# 2. Run the minimal batched runtime example
+uv run python examples/vector_env_minimal.py
+```
+
+For a lower-level runtime script:
+
+```bash
+uv run python examples/sim_minimal.py
+```
+
+The interactive viewer is now an optional debugging tool:
+
+```bash
 uv run vgtr-py serve
 ```
 
