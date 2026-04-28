@@ -1,13 +1,13 @@
-"""物理引擎核心模块。
+"""Legacy workspace-mutating physics engine.
 
-实现了物理系统的状态预计算、更新及模拟计算逻辑，主要负责将工作区的拓扑状态同步至运算引擎。
+保留旧的 ``Workspace`` 直写式仿真入口，仅用于兼容历史调用。
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-from .workspace import Workspace
+from ..workspace import Workspace
 
 
 def precompute(workspace: Workspace) -> None:

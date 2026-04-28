@@ -1,6 +1,7 @@
-"""包初始化与Typer CLI。
+"""包初始化与 Typer CLI。
 
-此模块定义了项目的入口点组或命令行接口挂载点，便于通过命令行驱动 PneuMesh 系统。
+此模块保留轻量命令行入口；当前主路径已转向 runtime/adapters，
+CLI 中的 ``serve`` 主要用于可视化调试。
 """
 
 import logging
@@ -41,7 +42,7 @@ def serve(
     host: str = "0.0.0.0",
     port: int = 8080,
 ) -> None:
-    """启动基于 Viser 的 VGTR 交互式查看器。"""
+    """启动基于 Viser 的 VGTR 交互式查看器，用于可视化调试。"""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
