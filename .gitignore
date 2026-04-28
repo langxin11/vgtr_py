@@ -13,3 +13,6 @@ wheels/
 
 docs/_build/
 docs/generated/
+docs/videos
+.codex/
+vendor/

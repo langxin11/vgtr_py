@@ -169,7 +169,7 @@ sleeve (刚性套筒) + left_piston + right_piston (伸缩活塞)
 ```
 
 - 单环境：`SceneRenderer.render()` → `/world/...`
-- 批量预览：`SceneRenderer.render_batch()` → `/world/envs/{i}/...`
+- 批量预览：`SceneRenderer.render_batch()` → `/world/batch/...` batched mesh handles
 - 支持 `selected_env` 与 `show_only_selected` 控制批量视图
 
 ## 6. 关键设计决策

@@ -62,8 +62,8 @@ uv run python examples/runtime_viser_batch_loop.py
 uv run python examples/runtime_viser_batch_loop.py --num-envs 9 --hide-others --selected-env 0
 ```
 
-Renders multiple `VectorVGTREnv` instances in one Viser scene using env-prefixed
-scene nodes and grid offsets.
+Renders multiple `VectorVGTREnv` instances in one Viser scene using batched mesh
+handles, grid offsets, and selected-env controls.
 
 ## Full UI
 

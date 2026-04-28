@@ -59,8 +59,9 @@ The project employs an isolation strategy of "Graph Theory Internals vs. Robotic
 - [x] Establish a global Snapshot-based history system
 - [x] Comprehensive unit tests for core modules (all currently passing)
 - [x] Gymnasium-compatible `VGTREnv` and projection layer (partial)
+- [x] CPU-vectorized `VectorVGTREnv` baseline for batched rollout
 - [ ] Interactive Action Sequence Editor (Script Grid Editor)
-- [ ] Batched / parallel simulation for large-scale RL training
+- [ ] GPU-scale parallel simulation backend for large-scale RL training
 
 ## 🎬 Demo
 
