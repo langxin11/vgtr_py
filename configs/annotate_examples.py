@@ -22,27 +22,29 @@ DESCRIPTIONS = {
 
 CONFIGS_DIR = Path("configs")
 
+
 def main():
     for filename, desc in DESCRIPTIONS.items():
         file_path = CONFIGS_DIR / filename
         if not file_path.exists():
             print(f"Skipping {filename}, not found.")
             continue
-            
+
         print(f"Annotating {filename}...")
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
-            
+
             # Insert description at the top (dict insertion order matters for JSON)
             new_data = {"description": desc}
             new_data.update(data)
-            
+
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(new_data, f, ensure_ascii=False, indent=2)
                 f.write("\n")
         except Exception as e:
             print(f"Error processing {filename}: {e}")
+
 
 if __name__ == "__main__":
     main()

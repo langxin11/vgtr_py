@@ -14,6 +14,7 @@ try:  # pragma: no cover - exercised when gymnasium is available
     import gymnasium as gym
     from gymnasium import spaces
 except ImportError:  # pragma: no cover - exercised in the sandbox
+
     class _Env:
         """最小化 Env Mock，用于无 gymnasium 时的类型占位。"""
 

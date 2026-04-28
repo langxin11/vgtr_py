@@ -41,7 +41,7 @@ class RuntimeSession:
         control_mode: ControlMode = "direct",
         seed: int | None = None,
         max_steps: int | None = None,
-    ) -> "RuntimeSession":
+    ) -> RuntimeSession:
         model = compile_workspace(workspace)
         state = make_state(model, num_envs=num_envs, seed=seed)
         return cls(model=model, state=state, control_mode=control_mode, max_steps=max_steps)
@@ -82,7 +82,9 @@ class RuntimeSession:
             raise ValueError(
                 "direct control mode requires no control groups; pass None or a dummy shape (1,) / (E, 1)"
             )
-        action_array = np.asarray(action, dtype=np.float64) if action is not None else self.state.ctrl_target
+        action_array = (
+            np.asarray(action, dtype=np.float64) if action is not None else self.state.ctrl_target
+        )
         expected = (self.num_envs, self.model.control_group_count)
         if action_array.ndim == 1:
             if action_array.shape[0] != self.model.control_group_count:
@@ -91,7 +93,9 @@ class RuntimeSession:
                 )
             action_array = np.broadcast_to(action_array, expected)
         if action_array.shape != expected:
-            raise ValueError(f"expected direct action with shape {expected}, got {action_array.shape}")
+            raise ValueError(
+                f"expected direct action with shape {expected}, got {action_array.shape}"
+            )
         return action_array
 
     def _normalize_projection_action(self, action: np.ndarray | None) -> np.ndarray:
@@ -109,7 +113,9 @@ class RuntimeSession:
                 )
             action_array = np.broadcast_to(action_array, expected)
         if action_array.shape != expected:
-            raise ValueError(f"expected projection action with shape {expected}, got {action_array.shape}")
+            raise ValueError(
+                f"expected projection action with shape {expected}, got {action_array.shape}"
+            )
         return action_array
 
     def _resolve_ctrl_target(
@@ -163,7 +169,13 @@ class RuntimeSession:
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, object]]:
         self._require_single_env()
         observation, reward, terminated, truncated, info = self.step_batch(action)
-        return observation[0], float(reward[0]), bool(terminated[0]), bool(truncated[0]), _single_info(info)
+        return (
+            observation[0],
+            float(reward[0]),
+            bool(terminated[0]),
+            bool(truncated[0]),
+            _single_info(info),
+        )
 
 
 def _single_info(info: dict[str, np.ndarray]) -> dict[str, object]:

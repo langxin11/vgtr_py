@@ -49,9 +49,7 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
         num_anchors,
         float(robot.anchor.radius),
     )
-    topology.rod_rest_length = _resize_float_array(
-        topology.rod_rest_length, num_rod_groups, 2.0
-    )
+    topology.rod_rest_length = _resize_float_array(topology.rod_rest_length, num_rod_groups, 2.0)
     topology.rod_min_length = _resize_float_array(
         topology.rod_min_length,
         num_rod_groups,
@@ -78,7 +76,6 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
             dtype=np.float64,
         ),
     )
-
 
     physics.control_group_target = _resize_float_array(
         physics.control_group_target,
@@ -182,7 +179,7 @@ def update_forces(workspace: Workspace) -> None:
     # --- 地面接触力 (Penalty Force + Coulomb Friction) ---
     z_pos = topology.anchor_pos[:, 2]
     v_z = physics.velocities[:, 2]
-    
+
     # 仅处理 z < 0 的点
     contact_mask = z_pos < 0
     if np.any(contact_mask):
@@ -193,24 +190,24 @@ def update_forces(workspace: Workspace) -> None:
         f_damping = -config.ground_d * v_z[contact_mask]
         f_normal = np.maximum(0.0, f_spring + f_damping)
         physics.forces[contact_mask, 2] += f_normal
-        
+
         # 2. 库仑摩擦力 (基于正压力 Fn)
         # 提取水平速度
         v_xy = physics.velocities[contact_mask, :2]
         v_speed_xy = np.linalg.norm(v_xy, axis=1)
-        
+
         # 最大静摩擦/动摩擦力
         f_fric_max = config.friction_factor * f_normal
-        
+
         # 为了数值稳定，使用平滑的摩擦力模型：Ff = -normalize(v) * min(f_max, viscosity * speed)
         # 这里的 100.0 是一个经验粘滞系数，用于在低速时平滑过渡
         viscosity = 100.0
         f_fric_magnitude = np.minimum(f_fric_max, viscosity * v_speed_xy)
-        
+
         # 防止除以 0
         safe_speed = np.where(v_speed_xy > 1e-6, v_speed_xy, 1.0)
         f_fric_vec = -v_xy * (f_fric_magnitude / safe_speed)[:, None]
-        
+
         physics.forces[contact_mask, :2] += f_fric_vec
 
 
@@ -270,9 +267,7 @@ def _integrate(workspace: Workspace) -> None:
         return
 
     safe_mass = np.where(topology.anchor_mass > 1e-9, topology.anchor_mass, 1.0)
-    physics.velocities[movable] += (
-        physics.forces[movable] / safe_mass[movable, None]
-    ) * config.h
+    physics.velocities[movable] += (physics.forces[movable] / safe_mass[movable, None]) * config.h
 
     # 全局阻尼 (空气阻尼/关节阻尼)
     physics.velocities[movable] *= config.damping_ratio

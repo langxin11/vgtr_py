@@ -1,16 +1,11 @@
 from pathlib import Path
 
-import numpy as np
-
 from vgtr_py.commands import (
     apply_edit,
     connect_selected_anchors,
     load_workspace_from_paths,
-    save_workspace_to_path,
 )
-from vgtr_py.config import default_config
 from vgtr_py.history import WorkspaceHistory
-from vgtr_py.schema import WorkspaceFile
 from vgtr_py.topology import add_joint, select_anchor
 from vgtr_py.workspace import Workspace
 

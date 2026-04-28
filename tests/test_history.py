@@ -1,6 +1,6 @@
 from vgtr_py.config import default_config
 from vgtr_py.history import WorkspaceHistory, snapshots_equal
-from vgtr_py.schema import WorkspaceFile, SiteFile, RodGroupFile
+from vgtr_py.schema import RodGroupFile, SiteFile, WorkspaceFile
 from vgtr_py.workspace import Workspace
 
 

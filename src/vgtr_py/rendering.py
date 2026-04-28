@@ -58,29 +58,51 @@ def _unit_icosphere_mesh(subdiv: int = 2) -> tuple[np.ndarray, np.ndarray]:
 
     # 初始正二十面体（边长 2 的内接球）
     phi = (1.0 + np.sqrt(5.0)) / 2.0
-    verts = np.array([
-        [-1.0,  phi,  0.0],
-        [ 1.0,  phi,  0.0],
-        [-1.0, -phi,  0.0],
-        [ 1.0, -phi,  0.0],
-        [ 0.0, -1.0,  phi],
-        [ 0.0,  1.0,  phi],
-        [ 0.0, -1.0, -phi],
-        [ 0.0,  1.0, -phi],
-        [ phi,  0.0, -1.0],
-        [ phi,  0.0,  1.0],
-        [-phi,  0.0, -1.0],
-        [-phi,  0.0,  1.0],
-    ], dtype=np.float64)
+    verts = np.array(
+        [
+            [-1.0, phi, 0.0],
+            [1.0, phi, 0.0],
+            [-1.0, -phi, 0.0],
+            [1.0, -phi, 0.0],
+            [0.0, -1.0, phi],
+            [0.0, 1.0, phi],
+            [0.0, -1.0, -phi],
+            [0.0, 1.0, -phi],
+            [phi, 0.0, -1.0],
+            [phi, 0.0, 1.0],
+            [-phi, 0.0, -1.0],
+            [-phi, 0.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
     # 归一化到单位球
     verts /= np.linalg.norm(verts, axis=1, keepdims=True)
 
-    faces = np.array([
-        [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
-        [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
-        [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
-        [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
-    ], dtype=np.int32)
+    faces = np.array(
+        [
+            [0, 11, 5],
+            [0, 5, 1],
+            [0, 1, 7],
+            [0, 7, 10],
+            [0, 10, 11],
+            [1, 5, 9],
+            [5, 11, 4],
+            [11, 10, 2],
+            [10, 7, 6],
+            [7, 1, 8],
+            [3, 9, 4],
+            [3, 4, 2],
+            [3, 2, 6],
+            [3, 6, 8],
+            [3, 8, 9],
+            [4, 9, 5],
+            [2, 4, 11],
+            [6, 2, 10],
+            [8, 6, 7],
+            [9, 8, 1],
+        ],
+        dtype=np.int32,
+    )
 
     # Loop subdivision
     edge_map: dict[tuple[int, int], int] = {}
@@ -97,12 +119,14 @@ def _unit_icosphere_mesh(subdiv: int = 2) -> tuple[np.ndarray, np.ndarray]:
                     edge_map[key] = verts.shape[0]
                     verts = np.vstack([verts, mp])
                 mid.append(edge_map[key])
-            new_faces.extend([
-                [tri[0], mid[0], mid[2]],
-                [tri[1], mid[1], mid[0]],
-                [tri[2], mid[2], mid[1]],
-                [mid[0], mid[1], mid[2]],
-            ])
+            new_faces.extend(
+                [
+                    [tri[0], mid[0], mid[2]],
+                    [tri[1], mid[1], mid[0]],
+                    [tri[2], mid[2], mid[1]],
+                    [mid[0], mid[1], mid[2]],
+                ]
+            )
         faces = np.array(new_faces, dtype=np.int32)
         edge_map.clear()
 
@@ -149,6 +173,7 @@ def _unit_cylinder_mesh(segments: int = 16) -> tuple[np.ndarray, np.ndarray]:
 # ---------------------------------------------------------------------------
 # 四元数工具（向量化）
 # ---------------------------------------------------------------------------
+
 
 def _batch_quaternion_from_z_axis(directions: np.ndarray) -> np.ndarray:
     """将一组 Z 轴方向向量转为四元数 (wxyz)，shape ``(N, 3) → (N, 4)``。"""
@@ -198,6 +223,7 @@ def _batch_rotate_vectors(quats: np.ndarray, vectors: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # SceneRenderer
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class RodVisualGeometry:
@@ -408,7 +434,6 @@ class BatchHandleRegistry:
             server.flush()
 
 
-
 @dataclass
 class SceneRenderer:
     """负责将工作区状态渲染到 Viser 场景。
@@ -517,7 +542,12 @@ class SceneRenderer:
     def _render_rod_groups(self, workspace: Workspace, anchor_pos: np.ndarray) -> None:
         topology = workspace.topology
         if topology.rod_anchors.size == 0:
-            for dic in [self.sleeve_handles, self.rod_l_handles, self.rod_r_handles, self.rod_hitbox_handles]:
+            for dic in [
+                self.sleeve_handles,
+                self.rod_l_handles,
+                self.rod_r_handles,
+                self.rod_hitbox_handles,
+            ]:
                 for handle in dic.values():
                     handle.remove()
                 dic.clear()
@@ -655,7 +685,9 @@ class SceneRenderer:
                     wxyz=wxyz,
                 )
                 if self.on_rod_group_click is not None:
-                    handle.on_click(lambda _event, rod_index=index: self.on_rod_group_click(rod_index))
+                    handle.on_click(
+                        lambda _event, rod_index=index: self.on_rod_group_click(rod_index)
+                    )
                 self.rod_hitbox_handles[index] = handle
             else:
                 handle = self.rod_hitbox_handles[index]
@@ -740,6 +772,7 @@ class SceneRenderer:
 # 颜色工具
 # ---------------------------------------------------------------------------
 
+
 def _anchor_color(workspace: Workspace, index: int) -> np.ndarray:
     status = int(workspace.ui.anchor_status[index])
     if status == 2:
@@ -770,12 +803,12 @@ def _rod_color(workspace: Workspace, index: int) -> np.ndarray:
 # 批量数据校验 / 布局
 # ---------------------------------------------------------------------------
 
+
 def _as_batch_anchor_pos(batch_anchor_pos: np.ndarray, anchor_count: int) -> np.ndarray:
     positions = np.asarray(batch_anchor_pos, dtype=np.float64)
     if positions.ndim != 3 or positions.shape[1:] != (anchor_count, 3):
         raise ValueError(
-            "batch_anchor_pos must have shape "
-            f"(num_envs, {anchor_count}, 3), got {positions.shape}"
+            f"batch_anchor_pos must have shape (num_envs, {anchor_count}, 3), got {positions.shape}"
         )
     if positions.shape[0] <= 0:
         raise ValueError("batch_anchor_pos must contain at least one environment")
@@ -806,6 +839,7 @@ def _env_opacity_for_rods(state: BatchRenderState) -> np.ndarray | None:
 # ---------------------------------------------------------------------------
 # 几何计算（单实例 + batch 共用）
 # ---------------------------------------------------------------------------
+
 
 def _compute_single_rod_transform(
     workspace: Workspace,
@@ -892,7 +926,9 @@ def _compute_batch_render_state(
             rod_index,
             current_length=float(lengths[0]) if lengths.size else 0.0,
         )
-        base_length = _rod_visual_base_length(workspace, rod_index, current_length=float(lengths[0]))
+        base_length = _rod_visual_base_length(
+            workspace, rod_index, current_length=float(lengths[0])
+        )
         slide = (lengths - base_length) * 0.5
         center_offset = base_length * 0.25 + slide
         local_l = np.zeros((num_envs, 3), dtype=np.float64)
@@ -938,6 +974,7 @@ def _rod_visual_base_length(
     if base_length <= 1e-9:
         base_length = max(float(topology.rod_rest_length[index]), float(current_length), 1e-9)
     return base_length
+
 
 def _rod_visual_geometry(
     workspace: Workspace,

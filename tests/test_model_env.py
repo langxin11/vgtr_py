@@ -99,7 +99,9 @@ def test_runtime_session_single_env_helpers_and_env_view() -> None:
     assert view.qpos.flags.writeable is False
     assert view.ctrl.flags.writeable is False
 
-    single_session = RuntimeSession(model=model, state=make_state(model, num_envs=1), control_mode="direct")
+    single_session = RuntimeSession(
+        model=model, state=make_state(model, num_envs=1), control_mode="direct"
+    )
     one_obs = single_session.observe_one()
     assert one_obs.ndim == 1
     with pytest.raises(ValueError, match="num_envs == 1"):

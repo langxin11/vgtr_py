@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
-
 from vgtr_py.commands import load_workspace_from_paths
 from vgtr_py.runtime import RuntimeSession, project_anchor_targets
 

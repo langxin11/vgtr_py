@@ -72,9 +72,10 @@ def compute_target_lengths(model: VGTRModel, state: RuntimeState) -> np.ndarray:
     if np.any(active_mask) and state.ctrl.size:
         active_groups = model.rod_control_group[active_mask]
         active_limits = model.rod_length_limits[active_mask]
-        target_lengths[:, active_mask] = active_limits[:, 0][None, :] + (
-            active_limits[:, 1] - active_limits[:, 0]
-        )[None, :] * state.ctrl[:, active_groups]
+        target_lengths[:, active_mask] = (
+            active_limits[:, 0][None, :]
+            + (active_limits[:, 1] - active_limits[:, 0])[None, :] * state.ctrl[:, active_groups]
+        )
 
     override_mask = np.isfinite(state.rod_target_override) & active_mask[None, :]
     if np.any(override_mask):
@@ -163,9 +164,11 @@ def integrate(model: VGTRModel, state: RuntimeState) -> None:
     if movable_indices.size == 0:
         return
     safe_mass = np.where(model.anchor_mass > 1e-9, model.anchor_mass, 1.0)
-    state.qvel[:, movable_indices, :] = state.qvel[:, movable_indices, :] + (
-        state.forces[:, movable_indices, :] / safe_mass[movable_indices][None, :, None]
-    ) * model.config.h
+    state.qvel[:, movable_indices, :] = (
+        state.qvel[:, movable_indices, :]
+        + (state.forces[:, movable_indices, :] / safe_mass[movable_indices][None, :, None])
+        * model.config.h
+    )
     state.qvel[:, movable_indices, :] *= model.config.damping_ratio
 
     speed = np.linalg.norm(state.qvel[:, movable_indices, :], axis=2)

@@ -68,7 +68,7 @@ class VgtrUiApp:
     _running: bool = False
     _lock: threading.RLock = threading.RLock()
     _simulation_thread: threading.Thread | None = None
-    
+
     # 核心 UI 句柄缓存
     _simulate_checkbox: viser.GuiCheckboxHandle | None = None
     _editing_checkbox: viser.GuiCheckboxHandle | None = None
@@ -130,7 +130,7 @@ class VgtrUiApp:
             drag_end=self._on_transform_drag_end,
         )
         self._build_gui()
-        self._refresh_actuation_ui() # 初次加载控制条
+        self._refresh_actuation_ui()  # 初次加载控制条
         self.refresh()
         self._running = True
         self._simulation_thread = threading.Thread(target=self._simulation_loop, daemon=True)
@@ -143,10 +143,18 @@ class VgtrUiApp:
                 self.renderer.render_batch(
                     self.workspace,
                     batch_qpos=self._batch_session.state.qpos,
-                    selected_env=int(self._env_select_slider.value) if self._env_select_slider is not None else 0,
-                    show_only_selected=bool(self._hide_others_chk.value) if self._hide_others_chk is not None else False,
-                    spacing=float(self._spacing_slider.value) if self._spacing_slider is not None else 3.0,
-                    track_selected=bool(self._track_selected_chk.value) if self._track_selected_chk is not None else True,
+                    selected_env=int(self._env_select_slider.value)
+                    if self._env_select_slider is not None
+                    else 0,
+                    show_only_selected=bool(self._hide_others_chk.value)
+                    if self._hide_others_chk is not None
+                    else False,
+                    spacing=float(self._spacing_slider.value)
+                    if self._spacing_slider is not None
+                    else 3.0,
+                    track_selected=bool(self._track_selected_chk.value)
+                    if self._track_selected_chk is not None
+                    else True,
                 )
             else:
                 self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
@@ -328,35 +336,40 @@ class VgtrUiApp:
 
     def _build_gui(self) -> None:
         """构建优化后的参数化控制面板。"""
-        
+
         # 稳健定位 configs 目录
         project_root = Path(__file__).resolve().parents[2]
         config_dir = project_root / "configs"
-        if not config_dir.exists(): config_dir = Path("configs")
-            
+        if not config_dir.exists():
+            config_dir = Path("configs")
+
         example_files = sorted([f.name for f in config_dir.glob("*.json") if f.is_file()])
-            
+
         example_dropdown = self.server.gui.add_dropdown(
             "Robot Model",
             tuple(example_files),
-            initial_value=self.current_example_path.name if self.current_example_path and self.current_example_path.name in example_files else (example_files[0] if example_files else ""),
+            initial_value=self.current_example_path.name
+            if self.current_example_path and self.current_example_path.name in example_files
+            else (example_files[0] if example_files else ""),
         )
-        
+
         # 创建 Tab 标签页容器
         tab_group = self.server.gui.add_tab_group()
-        
+
         # --- Tab 1: Editor (搭建与编辑) ---
         with tab_group.add_tab("Editor", icon="pencil"):
             # 1. 场景与模型管理
             with self.server.gui.add_folder("Scene & Model"):
                 load_button = self.server.gui.add_button("Reload / Load Model")
-                save_text = self.server.gui.add_text("Export Path", str(self.current_example_path or ""))
+                save_text = self.server.gui.add_text(
+                    "Export Path", str(self.current_example_path or "")
+                )
                 save_button = self.server.gui.add_button("Export Workspace")
-                
+
                 with self.server.gui.add_folder("History", expand_by_default=False):
                     undo_button = self.server.gui.add_button("Undo")
                     redo_button = self.server.gui.add_button("Redo")
-                
+
                 self._file_status_markdown = self.server.gui.add_markdown("Ready.")
 
             # 2. 编辑模式与视图开关：固定可见，避免用户为了进入编辑模式先去 Physics tab。
@@ -372,7 +385,9 @@ class VgtrUiApp:
                 )
 
             # 3. 编辑工具：只在编辑模式下显示。
-            edit_tools_folder = self.server.gui.add_folder("Editing Tools", visible=self.workspace.ui.editing)
+            edit_tools_folder = self.server.gui.add_folder(
+                "Editing Tools", visible=self.workspace.ui.editing
+            )
             with edit_tools_folder:
                 with self.server.gui.add_folder("Selection"):
                     self.server.gui.add_markdown(
@@ -382,7 +397,9 @@ class VgtrUiApp:
                     fix_button = self.server.gui.add_button("Fix Selected")
                     unfix_button = self.server.gui.add_button("Unfix Selected")
                     with self.server.gui.add_folder("Assign Control Group"):
-                        cg_index = self.server.gui.add_number("Target CG Index", 0, min=0, max=20, step=1)
+                        cg_index = self.server.gui.add_number(
+                            "Target CG Index", 0, min=0, max=20, step=1
+                        )
                         assign_cg_button = self.server.gui.add_button("Apply to Selected Rods")
 
                 with self.server.gui.add_folder("Topology"):
@@ -391,7 +408,9 @@ class VgtrUiApp:
                     remove_rod_button = self.server.gui.add_button("Remove Rods")
                     remove_anchor_button = self.server.gui.add_button("Remove Anchors")
                     center_button = self.server.gui.add_button("Center Model")
-                    select_mode = self.server.gui.add_dropdown("Click Mode", ("replace", "toggle", "add-child"), initial_value="toggle")
+                    select_mode = self.server.gui.add_dropdown(
+                        "Click Mode", ("replace", "toggle", "add-child"), initial_value="toggle"
+                    )
 
         # --- Tab 2: Physics (物理参数与步进) ---
         with tab_group.add_tab("Physics", icon="settings"):
@@ -399,8 +418,11 @@ class VgtrUiApp:
             with self.server.gui.add_folder("Run Control"):
                 simulate = self.server.gui.add_checkbox("Simulate", self.workspace.ui.simulate)
                 simulation_rate = self.server.gui.add_number(
-                    "Steps / Second", int(self.simulation_steps_per_second),
-                    min=10, max=5000, step=50
+                    "Steps / Second",
+                    int(self.simulation_steps_per_second),
+                    min=10,
+                    max=5000,
+                    step=50,
                 )
                 render_rate = self.server.gui.add_dropdown(
                     "UI Render Hz", ("30", "60"), initial_value=str(int(self.render_hz))
@@ -408,29 +430,46 @@ class VgtrUiApp:
 
             with self.server.gui.add_folder("Solver Parameters"):
                 k_slider = self.server.gui.add_slider(
-                    "Rod Stiffness (k)", min=5000.0, max=50000.0, step=1000.0, 
-                    initial_value=float(self.workspace.config.k)
+                    "Rod Stiffness (k)",
+                    min=5000.0,
+                    max=50000.0,
+                    step=1000.0,
+                    initial_value=float(self.workspace.config.k),
                 )
                 damping_slider = self.server.gui.add_slider(
-                    "Global Damping", min=0.5, max=1.0, step=0.01, 
-                    initial_value=float(self.workspace.config.damping_ratio)
+                    "Global Damping",
+                    min=0.5,
+                    max=1.0,
+                    step=0.01,
+                    initial_value=float(self.workspace.config.damping_ratio),
                 )
                 friction_slider = self.server.gui.add_slider(
-                    "Coulomb Friction (mu)", min=0.0, max=2.0, step=0.05, 
-                    initial_value=float(self.workspace.config.friction_factor)
+                    "Coulomb Friction (mu)",
+                    min=0.0,
+                    max=2.0,
+                    step=0.05,
+                    initial_value=float(self.workspace.config.friction_factor),
                 )
-                
+
                 with self.server.gui.add_folder("Ground Penalty (Spring)", expand_by_default=False):
                     ground_k_slider = self.server.gui.add_slider(
-                        "Ground Stiffness", min=1e4, max=5e5, step=1e4, 
-                        initial_value=float(self.workspace.config.ground_k)
+                        "Ground Stiffness",
+                        min=1e4,
+                        max=5e5,
+                        step=1e4,
+                        initial_value=float(self.workspace.config.ground_k),
                     )
                     ground_d_slider = self.server.gui.add_slider(
-                        "Ground Damping", min=0.0, max=5000.0, step=50.0, 
-                        initial_value=float(self.workspace.config.ground_d)
+                        "Ground Damping",
+                        min=0.0,
+                        max=5000.0,
+                        step=50.0,
+                        initial_value=float(self.workspace.config.ground_d),
                     )
-                
-                gravity_toggle = self.server.gui.add_checkbox("Gravity", self.workspace.config.gravity)
+
+                gravity_toggle = self.server.gui.add_checkbox(
+                    "Gravity", self.workspace.config.gravity
+                )
 
             # 5. 回放与状态
             with self.server.gui.add_folder("Playback"):
@@ -443,15 +482,27 @@ class VgtrUiApp:
             with self.server.gui.add_folder("Environment", expand_by_default=False):
                 batch_mode = self.server.gui.add_checkbox("Batch Mode", False)
                 num_envs_input = self.server.gui.add_number(
-                    "Num Envs", 4, min=1, max=256, step=1,
+                    "Num Envs",
+                    4,
+                    min=1,
+                    max=256,
+                    step=1,
                 )
                 env_select = self.server.gui.add_slider(
-                    "Select", 0, 3, step=1, initial_value=0,
+                    "Select",
+                    0,
+                    3,
+                    step=1,
+                    initial_value=0,
                 )
                 hide_others = self.server.gui.add_checkbox("Hide others", False)
                 track_selected = self.server.gui.add_checkbox("Track selected", True)
                 spacing_slider = self.server.gui.add_slider(
-                    "Grid Spacing", 1.0, 10.0, step=0.5, initial_value=3.0,
+                    "Grid Spacing",
+                    1.0,
+                    10.0,
+                    step=0.5,
+                    initial_value=3.0,
                 )
 
         # --- Tab 3: Actuation (主动驱动测试) ---
@@ -474,7 +525,9 @@ class VgtrUiApp:
             with self._lock:
                 try:
                     selected_path = config_dir / example_dropdown.value
-                    self._load_workspace(config_path=self.current_config_path, example_path=selected_path)
+                    self._load_workspace(
+                        config_path=self.current_config_path, example_path=selected_path
+                    )
                 except Exception as exc:
                     self._set_file_status(f"Load failed: `{exc}`", log_terminal=True)
                 else:
@@ -494,22 +547,27 @@ class VgtrUiApp:
         def _(_):
             self.workspace.config.k = k_slider.value
             self._rebuild_runtime()
+
         @damping_slider.on_update
         def _(_):
             self.workspace.config.damping_ratio = damping_slider.value
             self._rebuild_runtime()
+
         @friction_slider.on_update
         def _(_):
             self.workspace.config.friction_factor = friction_slider.value
             self._rebuild_runtime()
+
         @ground_k_slider.on_update
         def _(_):
             self.workspace.config.ground_k = ground_k_slider.value
             self._rebuild_runtime()
+
         @ground_d_slider.on_update
         def _(_):
             self.workspace.config.ground_d = ground_d_slider.value
             self._rebuild_runtime()
+
         @gravity_toggle.on_update
         def _(_):
             self.workspace.config.gravity = gravity_toggle.value
@@ -517,9 +575,13 @@ class VgtrUiApp:
             self.refresh()
 
         @simulation_rate.on_update
-        def _(_): self.simulation_steps_per_second = float(simulation_rate.value)
+        def _(_):
+            self.simulation_steps_per_second = float(simulation_rate.value)
+
         @render_rate.on_update
-        def _(_): self.render_hz = float(render_rate.value)
+        def _(_):
+            self.render_hz = float(render_rate.value)
+
         @actuation_mode.on_update
         def _(_):
             with self._lock:
@@ -529,19 +591,26 @@ class VgtrUiApp:
                 self.refresh()
 
         @undo_button.on_click
-        def _(_): 
-            with self._lock: self._undo()
+        def _(_):
+            with self._lock:
+                self._undo()
+
         @redo_button.on_click
-        def _(_): 
-            with self._lock: self._redo()
+        def _(_):
+            with self._lock:
+                self._redo()
 
         @simulate.on_update
         def _(_):
-            with self._lock: self.workspace.ui.simulate = simulate.value; self.refresh()
+            with self._lock:
+                self.workspace.ui.simulate = simulate.value
+                self.refresh()
 
         @editing.on_update
         def _(_):
-            with self._lock: self._set_editing_state(editing.value, restore_pose=editing.value); self.refresh()
+            with self._lock:
+                self._set_editing_state(editing.value, restore_pose=editing.value)
+                self.refresh()
 
         @move_anchor.on_update
         def _(_):
@@ -554,7 +623,9 @@ class VgtrUiApp:
 
         @show_control_group.on_update
         def _(_):
-            with self._lock: self.workspace.ui.show_control_group = show_control_group.value; self.refresh()
+            with self._lock:
+                self.workspace.ui.show_control_group = show_control_group.value
+                self.refresh()
 
         @clear_button.on_click
         def _(_):
@@ -562,6 +633,7 @@ class VgtrUiApp:
                 clear_workspace_selection(self.workspace)
                 self._refresh_actuation_ui()
                 self.refresh()
+
         @fix_button.on_click
         def _(_):
             with self._lock:
@@ -569,6 +641,7 @@ class VgtrUiApp:
                     self._rebuild_runtime()
                     self._set_file_status("Fixed selected anchors.", log_terminal=True)
                 self.refresh()
+
         @unfix_button.on_click
         def _(_):
             with self._lock:
@@ -580,10 +653,14 @@ class VgtrUiApp:
         @assign_cg_button.on_click
         def _(_):
             with self._lock:
-                changed = assign_selected_rod_groups_control_group(self.workspace, self.history, control_group_index=int(cg_index.value))
+                changed = assign_selected_rod_groups_control_group(
+                    self.workspace, self.history, control_group_index=int(cg_index.value)
+                )
                 if changed:
                     self._rebuild_runtime()
-                    self._set_file_status(f"Assigned rods to CG {int(cg_index.value)}", log_terminal=True)
+                    self._set_file_status(
+                        f"Assigned rods to CG {int(cg_index.value)}", log_terminal=True
+                    )
                 self.refresh()
 
         @add_anchor_button.on_click
@@ -597,8 +674,10 @@ class VgtrUiApp:
                     new_index = int(self.workspace.topology.anchor_pos.shape[0] - 1)
                     auto_connected = int(self.workspace.topology.rod_anchors.shape[0]) > before_rods
                     msg = f"Added anchor {new_index}"
-                    if len(selected) == 1: msg += f" from anchor {selected[0]}"
-                    if auto_connected: msg += " (Auto-rod)"
+                    if len(selected) == 1:
+                        msg += f" from anchor {selected[0]}"
+                    if auto_connected:
+                        msg += " (Auto-rod)"
                     self._set_file_status(msg, log_terminal=True)
                 self.refresh()
 
@@ -633,7 +712,9 @@ class VgtrUiApp:
         @step_once.on_click
         def _(_):
             with self._lock:
-                self._run_simulation_steps(int(step_count.value), scripting=bool(self._scripting_toggle.value))
+                self._run_simulation_steps(
+                    int(step_count.value), scripting=bool(self._scripting_toggle.value)
+                )
                 self.refresh()
 
         @reset_runtime.on_click
@@ -657,7 +738,7 @@ class VgtrUiApp:
         self._friction_slider = friction_slider
         self._scripting_toggle = scripting
         self._actuation_mode_dropdown = actuation_mode
-        
+
         self.renderer.on_anchor_click = self._on_anchor_click
         self.renderer.on_rod_group_click = self._on_rod_group_click
         self._select_mode = select_mode
@@ -710,7 +791,7 @@ class VgtrUiApp:
         """动态刷新驱动控制 UI，根据模式展示控制组或按杆件滑块。"""
         if self._actuation_folder is None:
             return
-            
+
         # 清理旧滑块
         for s in self._control_sliders:
             s.remove()
@@ -779,7 +860,9 @@ class VgtrUiApp:
         if not active_indices:
             self._actuation_folder.visible = False
             if self._actuation_status_markdown is not None:
-                self._actuation_status_markdown.content = "No active rods available for direct control."
+                self._actuation_status_markdown.content = (
+                    "No active rods available for direct control."
+                )
             return
 
         slider_indices = active_indices
@@ -809,10 +892,10 @@ class VgtrUiApp:
                     if np.isfinite(self.session.state.rod_target_override[0, rod_index])
                     else self.session.state.rod_target_length[0, rod_index]
                 )
-                
+
                 # Convert current length to 0-1 normalized value: 0=min_length(lo), 1=max_length(hi)
                 current_norm = 0.0 if hi <= lo else (np.clip(current, lo, hi) - lo) / (hi - lo)
-                
+
                 slider = self.server.gui.add_slider(
                     f"Rod {rod_index}",
                     min=0.0,
@@ -825,7 +908,9 @@ class VgtrUiApp:
                 def _(_, idx=rod_index, s=slider, min_l=float(lo), max_l=float(hi)):
                     with self._lock:
                         if self.session is not None:
-                            self.session.state.rod_target_override[0, idx] = min_l + s.value * (max_l - min_l)
+                            self.session.state.rod_target_override[0, idx] = min_l + s.value * (
+                                max_l - min_l
+                            )
 
                 self._control_sliders.append(slider)
 
@@ -878,7 +963,8 @@ class VgtrUiApp:
         """变换控件拖拽结束回调：将拖拽操作提交到历史栈。"""
         with self._lock:
             self._is_transform_dragging = False
-            if self._drag_snapshot is None: return
+            if self._drag_snapshot is None:
+                return
             complete_drag_edit(self.workspace, self.history, self._drag_snapshot)
             self._drag_snapshot = None
 
@@ -931,10 +1017,18 @@ class VgtrUiApp:
                         self.renderer.render_batch(
                             self.workspace,
                             batch_qpos=self._batch_session.state.qpos,
-                            selected_env=int(self._env_select_slider.value) if self._env_select_slider is not None else 0,
-                            show_only_selected=bool(self._hide_others_chk.value) if self._hide_others_chk is not None else False,
-                            spacing=float(self._spacing_slider.value) if self._spacing_slider is not None else 3.0,
-                            track_selected=bool(self._track_selected_chk.value) if self._track_selected_chk is not None else True,
+                            selected_env=int(self._env_select_slider.value)
+                            if self._env_select_slider is not None
+                            else 0,
+                            show_only_selected=bool(self._hide_others_chk.value)
+                            if self._hide_others_chk is not None
+                            else False,
+                            spacing=float(self._spacing_slider.value)
+                            if self._spacing_slider is not None
+                            else 3.0,
+                            track_selected=bool(self._track_selected_chk.value)
+                            if self._track_selected_chk is not None
+                            else True,
                         )
                     else:
                         self.renderer.render(self.workspace, anchor_pos=self._runtime_anchor_pos())
@@ -961,7 +1055,7 @@ class VgtrUiApp:
         self.current_config_path = config_path
         self.current_example_path = example_path
         self._sync_gui_from_workspace()
-        self._refresh_actuation_ui() # 加载新模型后刷新控制条
+        self._refresh_actuation_ui()  # 加载新模型后刷新控制条
 
         if self._example_dropdown is not None:
             if example_path.name in self._example_dropdown.options:
@@ -1062,7 +1156,8 @@ class VgtrUiApp:
 
     def _update_status(self) -> None:
         """更新状态面板文本。"""
-        if self._status_markdown is None: return
+        if self._status_markdown is None:
+            return
         n_a = self.workspace.topology.anchor_pos.shape[0]
         n_r = self.workspace.topology.rod_anchors.shape[0]
         n_c = self.workspace.script.num_channels
@@ -1070,7 +1165,9 @@ class VgtrUiApp:
         sel_r = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
         ctrl_target = np.zeros((0,), dtype=np.float64)
         if self._batch_mode and self._batch_session is not None:
-            selected_env = int(self._env_select_slider.value) if self._env_select_slider is not None else 0
+            selected_env = (
+                int(self._env_select_slider.value) if self._env_select_slider is not None else 0
+            )
             selected_env = max(0, min(selected_env, self._batch_session.num_envs - 1))
             step_count = int(self._batch_session.state.step_count[selected_env])
             ctrl_target = self._batch_session.state.ctrl_target[selected_env]

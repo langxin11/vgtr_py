@@ -39,7 +39,7 @@ def test_rod_group_click_toggle_mode_updates_selection() -> None:
     workspace = make_workspace()
     app = VgtrUiApp(server=SimpleNamespace(), workspace=workspace, renderer=SimpleNamespace())
     app._select_mode = SimpleNamespace(value="toggle")
-    app._file_status_markdown = SimpleNamespace(content="") # Fix mock
+    app._file_status_markdown = SimpleNamespace(content="")  # Fix mock
     app.refresh = lambda: None
 
     # Act 1: 第一次点击索引为 1 的杆组
@@ -64,7 +64,7 @@ def test_rod_group_click_replace_mode_clears_anchor_selection() -> None:
     workspace.ui.anchor_status[:] = np.asarray([2, 0, 0], dtype=np.int8)
     app = VgtrUiApp(server=SimpleNamespace(), workspace=workspace, renderer=SimpleNamespace())
     app._select_mode = SimpleNamespace(value="replace")
-    app._file_status_markdown = SimpleNamespace(content="") # Fix mock
+    app._file_status_markdown = SimpleNamespace(content="")  # Fix mock
     app.refresh = lambda: None
 
     # Act
@@ -132,7 +132,7 @@ def test_sync_gui_updates_edit_folder_visibility() -> None:
     app._simulate_checkbox = SimpleNamespace(value=None)
     app._show_control_group_checkbox = SimpleNamespace(value=None)
     app._edit_tools_folder = SimpleNamespace(visible=False)
-    
+
     # 物理参数句柄
     app._k_slider = SimpleNamespace(value=0.0)
     app._damping_slider = SimpleNamespace(value=0.0)

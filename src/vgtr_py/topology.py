@@ -426,14 +426,10 @@ def _filter_edges(workspace: Workspace, keep: np.ndarray, *, preserve_edges: boo
         else topology.rod_control_group[:0]
     )
     topology.rod_enabled = (
-        topology.rod_enabled[keep]
-        if topology.rod_enabled.shape[0]
-        else topology.rod_enabled[:0]
+        topology.rod_enabled[keep] if topology.rod_enabled.shape[0] else topology.rod_enabled[:0]
     )
     topology.rod_actuated = (
-        topology.rod_actuated[keep]
-        if topology.rod_actuated.shape[0]
-        else topology.rod_actuated[:0]
+        topology.rod_actuated[keep] if topology.rod_actuated.shape[0] else topology.rod_actuated[:0]
     )
     topology.rod_group_mass = (
         topology.rod_group_mass[keep]
@@ -441,9 +437,7 @@ def _filter_edges(workspace: Workspace, keep: np.ndarray, *, preserve_edges: boo
         else topology.rod_group_mass[:0]
     )
     topology.rod_radius = (
-        topology.rod_radius[keep]
-        if topology.rod_radius.shape[0]
-        else topology.rod_radius[:0]
+        topology.rod_radius[keep] if topology.rod_radius.shape[0] else topology.rod_radius[:0]
     )
     topology.rod_sleeve_half = (
         topology.rod_sleeve_half[keep]
@@ -472,6 +466,8 @@ def _record_v0(vertices: np.ndarray) -> np.ndarray:
     if bbox_max[2] != bbox_min[2]:
         v0[:, 2] += bbox_max[2] - bbox_min[2]
     return v0
+
+
 def precompute(workspace: Workspace) -> None:
     """同步拓扑与运行时数组尺寸，并刷新派生长度缓存。"""
     sync_workspace_shapes(workspace)
@@ -503,9 +499,7 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
         num_anchors,
         float(robot.anchor.radius),
     )
-    topology.rod_rest_length = _resize_float_array(
-        topology.rod_rest_length, num_rod_groups, 2.0
-    )
+    topology.rod_rest_length = _resize_float_array(topology.rod_rest_length, num_rod_groups, 2.0)
     topology.rod_min_length = _resize_float_array(
         topology.rod_min_length,
         num_rod_groups,
@@ -572,7 +566,6 @@ def sync_workspace_shapes(workspace: Workspace) -> None:
     workspace.ui.rod_group_status = _resize_status_array(
         workspace.ui.rod_group_status, num_rod_groups
     )
-
 
 
 def _rod_group_lengths(anchor_pos: np.ndarray, rod_anchors: np.ndarray) -> np.ndarray:
@@ -674,5 +667,3 @@ def _resize_script(array: np.ndarray, *, num_channels: int, num_actions: int) ->
     if action_count > 0:
         resized[:channel_count, :action_count] = array[:channel_count, :action_count]
     return resized
-
-

@@ -1,8 +1,13 @@
 import numpy as np
 
 from vgtr_py.config import default_config
-from vgtr_py.schema import WorkspaceFile, SiteFile, RodGroupFile
-from vgtr_py.topology import remove_selected_edges, remove_selected_vertices, select_anchor, select_rod_group
+from vgtr_py.schema import RodGroupFile, SiteFile, WorkspaceFile
+from vgtr_py.topology import (
+    remove_selected_edges,
+    remove_selected_vertices,
+    select_anchor,
+    select_rod_group,
+)
 from vgtr_py.workspace import Workspace
 
 
@@ -32,7 +37,7 @@ def make_workspace() -> Workspace:
     )
     # 模拟 UI 选择
     select_anchor(workspace, 1, additive=False)  # 选中 s2
-    select_rod_group(workspace, 1, additive=True) # 选中 g2 (使用增量模式以免清空点选择)
+    select_rod_group(workspace, 1, additive=True)  # 选中 g2 (使用增量模式以免清空点选择)
     return workspace
 
 
@@ -51,7 +56,7 @@ def test_remove_selected_vertices_keeps_rod_arrays_in_sync() -> None:
     assert removed == 1
     # 验证只剩下原来的杆组 g3 (现在连接新的索引 1 和 2，即原来的 s3 和 s4)
     assert workspace.topology.rod_anchors.shape[0] == 1
-    
+
     # 验证属性同步
     assert bool(workspace.topology.rod_enabled[0]) is True
     assert workspace.topology.rod_group_ids[0] == "g3"
@@ -76,7 +81,7 @@ def test_remove_selected_edges_keeps_rod_arrays_in_sync() -> None:
     # Assert
     assert removed == 1
     assert workspace.topology.rod_anchors.shape[0] == 2
-    
+
     # 验证剩余的是 g1 和 g3
     assert workspace.topology.rod_group_ids == ["g1", "g3"]
     assert bool(workspace.topology.rod_enabled[0]) is True

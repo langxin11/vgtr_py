@@ -95,9 +95,14 @@ class DummyScene:
         return DummyHandle(**kwargs)
 
     def add_batched_meshes_simple(
-        self, name: str, vertices: np.ndarray, faces: np.ndarray,
-        batched_positions: np.ndarray, batched_wxyzs: np.ndarray,
-        *, batched_colors: np.ndarray | None = None,
+        self,
+        name: str,
+        vertices: np.ndarray,
+        faces: np.ndarray,
+        batched_positions: np.ndarray,
+        batched_wxyzs: np.ndarray,
+        *,
+        batched_colors: np.ndarray | None = None,
         batched_opacities: np.ndarray | None = None,
         batched_scales: np.ndarray | tuple | None = None,
         material: str = "standard",
@@ -132,6 +137,7 @@ class DummyServer:
 class _DummyAtomic:
     def __enter__(self) -> None:
         pass
+
     def __exit__(self, *args: object) -> None:
         pass
 
@@ -173,6 +179,7 @@ def rotate_with_quaternion(vector: np.ndarray, quaternion: np.ndarray) -> np.nda
 # 四元数测试
 # ---------------------------------------------------------------------------
 
+
 def test_quaternion_from_z_axis_keeps_z_direction() -> None:
     quaternion = _quaternion_from_z_axis(np.asarray([0.0, 0.0, 2.0], dtype=np.float64))
     rotated = rotate_with_quaternion(np.asarray([0.0, 0.0, 1.0], dtype=np.float64), quaternion)
@@ -212,6 +219,7 @@ def test_batch_rotate_vectors_z_to_x() -> None:
 # Rod visual geometry
 # ---------------------------------------------------------------------------
 
+
 def test_rod_visual_geometry_slides_rods_half_of_length_delta() -> None:
     workspace = make_render_workspace()
 
@@ -247,23 +255,27 @@ def test_rod_visuals_create_rods_as_sleeve_children() -> None:
 # 网格工具
 # ---------------------------------------------------------------------------
 
+
 def test_grid_env_origins_tiles_envs_on_xy_grid() -> None:
     origins = _grid_env_origins(4, spacing=2.5)
 
     np.testing.assert_allclose(
         origins,
-        np.asarray([
-            [0.0, 0.0, 0.0],
-            [2.5, 0.0, 0.0],
-            [0.0, 2.5, 0.0],
-            [2.5, 2.5, 0.0],
-        ]),
+        np.asarray(
+            [
+                [0.0, 0.0, 0.0],
+                [2.5, 0.0, 0.0],
+                [0.0, 2.5, 0.0],
+                [2.5, 2.5, 0.0],
+            ]
+        ),
     )
 
 
 # ---------------------------------------------------------------------------
 # Mesh 生成
 # ---------------------------------------------------------------------------
+
 
 def test_unit_icosphere_mesh_shape() -> None:
     v, f = _unit_icosphere_mesh(subdiv=2)
@@ -305,13 +317,16 @@ def test_mesh_caching() -> None:
 # Render state / transform kernel
 # ---------------------------------------------------------------------------
 
+
 def test_batch_render_state_uses_env_major_anchor_order() -> None:
     workspace = make_render_workspace()
     workspace.ui.anchor_status[1] = 2
-    qpos = np.stack([
-        workspace.topology.anchor_pos,
-        workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
-    ])
+    qpos = np.stack(
+        [
+            workspace.topology.anchor_pos,
+            workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
+        ]
+    )
 
     state = _compute_batch_render_state(
         workspace,
@@ -325,19 +340,24 @@ def test_batch_render_state_uses_env_major_anchor_order() -> None:
     np.testing.assert_allclose(state.anchor_positions, state.displayed_qpos.reshape(-1, 3))
     np.testing.assert_array_equal(
         state.anchor_colors,
-        np.asarray([
-            [153, 153, 153],
-            [230, 0, 0],
-            [153, 153, 153],
-            [230, 0, 0],
-        ], dtype=np.uint8),
+        np.asarray(
+            [
+                [153, 153, 153],
+                [230, 0, 0],
+                [153, 153, 153],
+                [230, 0, 0],
+            ],
+            dtype=np.uint8,
+        ),
     )
     np.testing.assert_allclose(state.anchor_opacities, [0.0, 0.0, 1.0, 1.0])
 
 
 def test_single_and_batch_share_rod_transform_kernel() -> None:
     workspace = make_render_workspace()
-    qpos = np.stack([workspace.topology.anchor_pos, workspace.topology.anchor_pos + [3.0, 0.0, 0.0]])
+    qpos = np.stack(
+        [workspace.topology.anchor_pos, workspace.topology.anchor_pos + [3.0, 0.0, 0.0]]
+    )
 
     single = _compute_single_rod_transform(workspace, workspace.topology.anchor_pos, 0)
     batch = _compute_batch_render_state(
@@ -357,9 +377,11 @@ def test_single_and_batch_share_rod_transform_kernel() -> None:
 
 def test_batch_rod_visuals_use_min_length_baseline() -> None:
     workspace = make_render_workspace()
-    qpos = np.stack([
-        np.asarray([[0.0, 0.0, 0.0], [1.6, 0.0, 0.0]], dtype=np.float64),
-    ])
+    qpos = np.stack(
+        [
+            np.asarray([[0.0, 0.0, 0.0], [1.6, 0.0, 0.0]], dtype=np.float64),
+        ]
+    )
 
     state = _compute_batch_render_state(
         workspace,
@@ -383,14 +405,17 @@ def test_batch_rod_visuals_use_min_length_baseline() -> None:
 # Batched mesh 渲染
 # ---------------------------------------------------------------------------
 
+
 def test_render_batch_creates_batched_mesh_handles() -> None:
     workspace = make_render_workspace()
     server = DummyServer()
     renderer = SceneRenderer(server=server)  # type: ignore[arg-type]
-    qpos = np.stack([
-        workspace.topology.anchor_pos,
-        workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
-    ])
+    qpos = np.stack(
+        [
+            workspace.topology.anchor_pos,
+            workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
+        ]
+    )
 
     renderer.render_batch(workspace, batch_qpos=qpos, spacing=3.0)
 
@@ -420,10 +445,12 @@ def test_render_batch_selected_env_opacity() -> None:
     workspace = make_render_workspace()
     server = DummyServer()
     renderer = SceneRenderer(server=server)  # type: ignore[arg-type]
-    qpos = np.stack([
-        workspace.topology.anchor_pos,
-        workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
-    ])
+    qpos = np.stack(
+        [
+            workspace.topology.anchor_pos,
+            workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
+        ]
+    )
 
     renderer.render_batch(
         workspace,
@@ -444,10 +471,12 @@ def test_render_batch_hide_others_off_restores_full_visibility() -> None:
     workspace = make_render_workspace()
     server = DummyServer()
     renderer = SceneRenderer(server=server)  # type: ignore[arg-type]
-    qpos = np.stack([
-        workspace.topology.anchor_pos,
-        workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
-    ])
+    qpos = np.stack(
+        [
+            workspace.topology.anchor_pos,
+            workspace.topology.anchor_pos + [3.0, 0.0, 0.0],
+        ]
+    )
 
     renderer.render_batch(workspace, batch_qpos=qpos, show_only_selected=False)
 
@@ -462,6 +491,7 @@ def test_render_batch_selected_env_out_of_bounds_raises() -> None:
     qpos = np.stack([workspace.topology.anchor_pos, workspace.topology.anchor_pos])
 
     import pytest
+
     with pytest.raises(ValueError):
         renderer.render_batch(workspace, batch_qpos=qpos, selected_env=5)
 
@@ -502,7 +532,13 @@ def test_render_batch_recreates_handles_when_dimensions_change() -> None:
     server = DummyServer()
     renderer = SceneRenderer(server=server)  # type: ignore[arg-type]
     qpos_2 = np.stack([workspace.topology.anchor_pos, workspace.topology.anchor_pos])
-    qpos_3 = np.stack([workspace.topology.anchor_pos, workspace.topology.anchor_pos, workspace.topology.anchor_pos])
+    qpos_3 = np.stack(
+        [
+            workspace.topology.anchor_pos,
+            workspace.topology.anchor_pos,
+            workspace.topology.anchor_pos,
+        ]
+    )
 
     renderer.render_batch(workspace, batch_qpos=qpos_2)
     anchor_h1 = renderer.batch_registry.anchor_mesh

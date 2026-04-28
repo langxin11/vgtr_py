@@ -57,7 +57,9 @@ def main(
     ] = 20,
     mode: Annotated[
         str,
-        typer.Option(help="slider = Viser GUI sliders; sine = autonomous gait; script = replay workspace script."),
+        typer.Option(
+            help="slider = Viser GUI sliders; sine = autonomous gait; script = replay workspace script."
+        ),
     ] = "slider",
 ) -> None:
     """启动支持多种作动模式的运行时仿真查看器。"""
@@ -104,9 +106,7 @@ def main(
         print(f"Created {num_cg} GUI slider(s). Drag them to actuate.")
 
     elif mode == "sine":
-        server.gui.add_markdown(
-            "Running **autonomous sine-wave gait**. No manual input needed."
-        )
+        server.gui.add_markdown("Running **autonomous sine-wave gait**. No manual input needed.")
         print("Sine-wave frequencies (rad/step):")
         # Give each control group a distinct frequency for interesting motion.
         frequencies = [0.05 * (i + 1) for i in range(num_cg)] if num_cg else []
@@ -138,10 +138,7 @@ def main(
                 elif mode == "sine":
                     # Open-loop sinusoidal pattern.
                     action = np.array(
-                        [
-                            0.5 + 0.5 * math.sin(0.05 * (i + 1) * step_idx)
-                            for i in range(num_cg)
-                        ],
+                        [0.5 + 0.5 * math.sin(0.05 * (i + 1) * step_idx) for i in range(num_cg)],
                         dtype=np.float64,
                     )
                     session.step_batch(action)

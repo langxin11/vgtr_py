@@ -50,7 +50,7 @@ class VGTRGymEnv(gym.Env):
         *,
         max_steps: int = 1000,
         control_mode: ControlMode = "direct",
-    ) -> "VGTRGymEnv":
+    ) -> VGTRGymEnv:
         session = RuntimeSession.from_workspace(
             workspace,
             num_envs=1,

@@ -59,7 +59,9 @@ def _distance(left: list[float], right: list[float]) -> float:
     return math.sqrt(sum((float(r) - float(l)) ** 2 for l, r in zip(left, right, strict=False)))
 
 
-def _normalize_script(script: list[list[Any]], *, num_channels: int, num_actions: int) -> list[list[bool]]:
+def _normalize_script(
+    script: list[list[Any]], *, num_channels: int, num_actions: int
+) -> list[list[bool]]:
     """
     动作脚本标准化逻辑：
     将原始不规则的嵌套列表转换为 (Channels x Actions) 的标准布尔矩阵。
@@ -89,14 +91,14 @@ def convert_example(data: dict[str, Any]) -> dict[str, Any]:
     edges = data.get("e") or []
     # 哪些节点是固定在空中的
     fixed_vertices = data.get("fixedVs") or []
-    
+
     # 2. 提取控制参数
     edge_channels = data.get("edgeChannel") or []
     edge_active = data.get("edgeActive") or []
     script = data.get("script") or []
     inflate_channel = data.get("inflateChannel") or []
     contraction_percent = data.get("contractionPercent") or []
-    
+
     # 确定控制通道维度和动作步骤总数
     num_channels = int(data.get("numChannels") or len(script) or 0)
     num_actions = int(data.get("numActions") or max((len(row) for row in script), default=1))
@@ -121,7 +123,9 @@ def convert_example(data: dict[str, Any]) -> dict[str, Any]:
         max_length = min_length + DEFAULT_LENGTH_DELTA
         enabled = _bool(edge_active[i], default=True) if i < len(edge_active) else True
         control_group = (
-            _control_group_name(int(edge_channels[i])) if i < len(edge_channels) else _control_group_name(i)
+            _control_group_name(int(edge_channels[i]))
+            if i < len(edge_channels)
+            else _control_group_name(i)
         )
         rod_group: dict[str, Any] = {
             "name": _rod_name(i),
@@ -141,12 +145,12 @@ def convert_example(data: dict[str, Any]) -> dict[str, Any]:
     control_groups: list[dict[str, Any]] = []
     for i in range(num_channels):
         group: dict[str, Any] = {"name": _control_group_name(i)}
-        
+
         # 处理气动收缩的默认目标参数 (针对主动收缩通道)
         if i < len(inflate_channel) and i < len(contraction_percent):
             if _bool(inflate_channel[i]):
                 group["default_target"] = float(contraction_percent[i])
-                
+
         control_groups.append(group)
 
     # 6. 标准化动作时序脚本
@@ -186,7 +190,7 @@ def main() -> None:
             data = json.loads(source_path.read_text(encoding="utf-8"))
             # 执行转换
             converted = convert_example(data)
-            
+
             # 序列化为新版 JSON (保留非 ASCII 字符，缩进 2 格)
             target_path = TARGET_DIR / source_path.name
             target_path.write_text(

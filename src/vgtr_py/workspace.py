@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -64,6 +63,7 @@ def _empty_bools() -> BoolArray:
     """
     return np.zeros(0, dtype=np.bool_)
 
+
 def _empty_colors() -> UInt8Array:
     """
     创建一个空的颜色数组，形状为(0, 3)。
@@ -72,6 +72,7 @@ def _empty_colors() -> UInt8Array:
         UInt8Array: 形状为(0, 3)的np.uint8类型数组。
     """
     return np.zeros((0, 3), dtype=np.uint8)
+
 
 def _empty_float3() -> FloatArray:
     """
@@ -105,25 +106,27 @@ class TopologyState:
     变几何桁架机器人的拓扑状态。
     描述机器人结构、锚点、杆组及其连接关系和物理属性。
     """
-    anchor_ids: list[str]               # 锚点ID列表，顺序与anchor_pos等数组索引一致
-    anchor_pos: FloatArray              # 锚点三维坐标，形状 (anchor_count, 3)
-    anchor_fixed: BoolArray             # 锚点是否固定，形状 (anchor_count,)
-    anchor_mass: FloatArray             # 锚点质量，形状 (anchor_count,)
-    anchor_radius: FloatArray           # 锚点半径，形状 (anchor_count,)
-    anchor_projection_target: BoolArray # 是否作为投影控制目标，形状 (anchor_count,)
-    rod_group_ids: list[str]            # 杆组ID列表，顺序与rod_anchors等数组索引一致
-    rod_anchors: IntArray               # 每根杆连接的两个锚点索引，形状 (rod_count, 2)
-    rod_rest_length: FloatArray         # 杆初始（静止）长度，形状 (rod_count,)
-    rod_min_length: FloatArray          # 杆最小允许长度，形状 (rod_count,)
-    rod_control_group: IntArray         # 杆所属控制组索引，形状 (rod_count,)
-    rod_enabled: BoolArray              # 杆是否启用，形状 (rod_count,)
-    rod_actuated: BoolArray             # 杆是否可驱动，形状 (rod_count,)
-    rod_group_mass: FloatArray          # 杆组质量，形状 (rod_count,)
-    rod_radius: FloatArray              # 杆半径，形状 (rod_count,)
-    rod_sleeve_half: FloatArray         # 杆套筒半长，形状 (rod_count, 3)
-    rod_type: IntArray                  # 杆件类型，形状 (rod_count,)
-    rod_length_limits: FloatArray       # 杆件长度限制，形状 (rod_count, 2)
-    rod_force_limits: FloatArray        # 杆件出力限制，形状 (rod_count, 2)
+
+    anchor_ids: list[str]  # 锚点ID列表，顺序与anchor_pos等数组索引一致
+    anchor_pos: FloatArray  # 锚点三维坐标，形状 (anchor_count, 3)
+    anchor_fixed: BoolArray  # 锚点是否固定，形状 (anchor_count,)
+    anchor_mass: FloatArray  # 锚点质量，形状 (anchor_count,)
+    anchor_radius: FloatArray  # 锚点半径，形状 (anchor_count,)
+    anchor_projection_target: BoolArray  # 是否作为投影控制目标，形状 (anchor_count,)
+    rod_group_ids: list[str]  # 杆组ID列表，顺序与rod_anchors等数组索引一致
+    rod_anchors: IntArray  # 每根杆连接的两个锚点索引，形状 (rod_count, 2)
+    rod_rest_length: FloatArray  # 杆初始（静止）长度，形状 (rod_count,)
+    rod_min_length: FloatArray  # 杆最小允许长度，形状 (rod_count,)
+    rod_control_group: IntArray  # 杆所属控制组索引，形状 (rod_count,)
+    rod_enabled: BoolArray  # 杆是否启用，形状 (rod_count,)
+    rod_actuated: BoolArray  # 杆是否可驱动，形状 (rod_count,)
+    rod_group_mass: FloatArray  # 杆组质量，形状 (rod_count,)
+    rod_radius: FloatArray  # 杆半径，形状 (rod_count,)
+    rod_sleeve_half: FloatArray  # 杆套筒半长，形状 (rod_count, 3)
+    rod_type: IntArray  # 杆件类型，形状 (rod_count,)
+    rod_length_limits: FloatArray  # 杆件长度限制，形状 (rod_count, 2)
+    rod_force_limits: FloatArray  # 杆件出力限制，形状 (rod_count, 2)
+
 
 @dataclass(slots=True)
 class PhysicsState:
@@ -131,7 +134,9 @@ class PhysicsState:
     锚点级物理与运行时状态（现仅作为初始状态缓存）。
     保存拖拽等操作前锚点的初始位置，用于撤销和状态恢复。
     """
-    v0: FloatArray          # 锚点初始位置，形状 (anchor_count, 3)，用于重置/回放
+
+    v0: FloatArray  # 锚点初始位置，形状 (anchor_count, 3)，用于重置/回放
+
 
 @dataclass(slots=True)
 class ScriptState:
@@ -139,13 +144,21 @@ class ScriptState:
     控制组脚本与颜色定义。
     保存控制脚本、分组ID、颜色、使能状态等。
     """
+
     script: FloatArray  # 控制脚本数组，形状 (num_channels, num_actions)
-    num_channels: int   # 控制通道数（控制组数）
-    num_actions: int    # 动作步数
+    num_channels: int  # 控制通道数（控制组数）
+    num_actions: int  # 动作步数
     control_group_ids: list[str] = field(default_factory=list)  # 控制组ID列表
-    control_group_colors: UInt8Array = field(default_factory=_empty_colors)  # 控制组颜色 (num_channels, 3)
-    control_group_enabled: BoolArray = field(default_factory=_empty_bools)  # 控制组使能状态 (num_channels,)
-    control_group_default_target: FloatArray = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
+    control_group_colors: UInt8Array = field(
+        default_factory=_empty_colors
+    )  # 控制组颜色 (num_channels, 3)
+    control_group_enabled: BoolArray = field(
+        default_factory=_empty_bools
+    )  # 控制组使能状态 (num_channels,)
+    control_group_default_target: FloatArray = field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64)
+    )
+
 
 @dataclass(slots=True)
 class UiState:
@@ -153,15 +166,17 @@ class UiState:
     用户界面交互状态。
     保存与UI相关的选择、编辑、显示等状态。
     """
-    anchor_status: StatusArray      # 锚点UI状态（选中/高亮等），形状 (anchor_count,)
-    rod_group_status: StatusArray   # 杆组UI状态，形状 (rod_count,)
-    face_status: StatusArray        # 面片UI状态，形状 (face_count,)
-    editing: bool = False           # 是否处于编辑模式
-    moving_anchor: bool = False     # 是否正在移动锚点
-    moving_body: bool = False       # 是否正在移动整体
-    show_control_group: bool = False # 是否显示控制组
-    simulate: bool = True           # 是否处于仿真模式
-    record: bool = False            # 是否录制仿真
+
+    anchor_status: StatusArray  # 锚点UI状态（选中/高亮等），形状 (anchor_count,)
+    rod_group_status: StatusArray  # 杆组UI状态，形状 (rod_count,)
+    face_status: StatusArray  # 面片UI状态，形状 (face_count,)
+    editing: bool = False  # 是否处于编辑模式
+    moving_anchor: bool = False  # 是否正在移动锚点
+    moving_body: bool = False  # 是否正在移动整体
+    show_control_group: bool = False  # 是否显示控制组
+    simulate: bool = True  # 是否处于仿真模式
+    record: bool = False  # 是否录制仿真
+
 
 @dataclass(slots=True)
 class WorkspaceSnapshot:
@@ -169,10 +184,12 @@ class WorkspaceSnapshot:
     工作区快照。
     用于保存/恢复仿真全状态，支持撤销、回放等功能。
     """
+
     topology: TopologyState
     physics: PhysicsState
     script: ScriptState
     ui: UiState
+
 
 @dataclass(slots=True)
 class Workspace:
@@ -180,13 +197,14 @@ class Workspace:
     VGTR 工作区核心容器。
     聚合仿真所需的所有状态，支持快照、恢复、导入导出等操作。
     """
-    config: SimulationConfig         # 仿真全局配置
-    robot_config: RobotConfig        # 机器人结构/参数配置
-    topology: TopologyState          # 拓扑结构状态
-    physics: PhysicsState            # 物理仿真状态
-    script: ScriptState              # 控制脚本与分组状态
-    ui: UiState                      # UI交互状态
-    storage_format: str = "vgtr"     # 存储格式标识
+
+    config: SimulationConfig  # 仿真全局配置
+    robot_config: RobotConfig  # 机器人结构/参数配置
+    topology: TopologyState  # 拓扑结构状态
+    physics: PhysicsState  # 物理仿真状态
+    script: ScriptState  # 控制脚本与分组状态
+    ui: UiState  # UI交互状态
+    storage_format: str = "vgtr"  # 存储格式标识
 
     @classmethod
     def from_file_data(
@@ -252,10 +270,7 @@ class Workspace:
             dtype=np.float64,
         )
         anchor_projection_target = np.asarray(
-            [
-                bool(workspace_file.sites[anchor_id].projection_target)
-                for anchor_id in anchor_ids
-            ],
+            [bool(workspace_file.sites[anchor_id].projection_target) for anchor_id in anchor_ids],
             dtype=np.bool_,
         )
 
@@ -276,7 +291,7 @@ class Workspace:
         rod_length_limits = np.zeros((num_rod_groups, 2), dtype=np.float64)
         rod_force_limits = np.zeros((num_rod_groups, 2), dtype=np.float64)
         rod_radius = np.full(num_rod_groups, float(robot.rod_group.rod_radius), dtype=np.float64)
-        
+
         default_sleeve = np.asarray(
             [
                 float(robot.rod_group.sleeve_radius),
@@ -301,7 +316,9 @@ class Workspace:
             rest_length = float(rod_group.rest_length or anchor_distance)
             # Remove length_delta inference per user request
             # max_length = rest_length + DEFAULT_LENGTH_DELTA
-            max_length = rest_length + 0.1 # hardcode fallback since length_delta is removed from config
+            max_length = (
+                rest_length + 0.1
+            )  # hardcode fallback since length_delta is removed from config
 
             if rod_group.length_limits:
                 limits = np.asarray(rod_group.length_limits[:2], dtype=np.float64)
@@ -320,7 +337,9 @@ class Workspace:
             rod_group_mass[i] = float(rod_group.group_mass or 1.0)
             rod_radius[i] = float(rod_group.rod_radius or robot.rod_group.rod_radius)
 
-            rod_type_name = rod_group.rod_type or ("active" if bool(rod_group.actuated) else "passive")
+            rod_type_name = rod_group.rod_type or (
+                "active" if bool(rod_group.actuated) else "passive"
+            )
             normalized_rod_type = _ROD_TYPE_BY_NAME.get(rod_type_name)
             if normalized_rod_type is None:
                 raise ValueError(
@@ -510,7 +529,6 @@ class Workspace:
         self.physics = snapshot.physics
         self.script = snapshot.script
         self.ui = snapshot.ui
-
 
     def restore_initial_state(self) -> None:
         """

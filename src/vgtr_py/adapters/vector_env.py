@@ -64,7 +64,7 @@ class VGTRVectorEnv(gym.Env):
         num_envs: int,
         max_steps: int = 1000,
         control_mode: ControlMode = "direct",
-    ) -> "VGTRVectorEnv":
+    ) -> VGTRVectorEnv:
         session = RuntimeSession.from_workspace(
             workspace,
             num_envs=num_envs,
