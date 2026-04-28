@@ -23,10 +23,8 @@ import typer
 import viser
 
 from vgtr_py.commands import load_workspace_from_paths
-from vgtr_py.data import make_data
-from vgtr_py.model import compile_workspace
 from vgtr_py.rendering import SceneRenderer
-from vgtr_py.sim import Simulator, advance_script_targets
+from vgtr_py.runtime import RuntimeSession
 
 app = typer.Typer(add_completion=False)
 
@@ -70,9 +68,7 @@ def main(
         config_path=config,
         example_path=example,
     )
-    model = compile_workspace(workspace)
-    data = make_data(model)
-    simulator = Simulator()
+    session = RuntimeSession.from_workspace(workspace, control_mode="direct")
 
     # ------------------------------------------------------------------
     # 2. Viser server + scene renderer.
@@ -80,7 +76,7 @@ def main(
     server = viser.ViserServer(host=host, port=port)
     renderer = SceneRenderer(server=server)
     renderer.setup_scene()
-    renderer.render(workspace, anchor_pos=data.qpos)
+    renderer.render(workspace, anchor_pos=session.state.qpos[0])
 
     url_host = "localhost" if host in {"0.0.0.0", "::"} else host
     print(f"Viewer: http://{url_host}:{port}")
@@ -90,7 +86,7 @@ def main(
     # ------------------------------------------------------------------
     # 3. Mode-specific setup.
     # ------------------------------------------------------------------
-    num_cg = model.control_group_count
+    num_cg = session.model.control_group_count
     slider_handles: list[viser.GuiSliderHandle[float]] = []
 
     if mode == "slider" and num_cg > 0:
@@ -102,7 +98,7 @@ def main(
                     min=0.0,
                     max=1.0,
                     step=0.01,
-                    initial_value=float(data.ctrl_target[i]),
+                    initial_value=float(session.state.ctrl_target[0, i]),
                 )
                 slider_handles.append(slider)
         print(f"Created {num_cg} GUI slider(s). Drag them to actuate.")
@@ -118,7 +114,7 @@ def main(
             print(f"  CG {i}: {f:.3f}")
 
     elif mode == "script":
-        if model.script.size == 0:
+        if session.model.script.size == 0:
             print("WARNING: Workspace has no script. Falling back to default targets.")
         server.gui.add_markdown("Replaying workspace **script** matrix.")
 
@@ -137,7 +133,7 @@ def main(
                 if mode == "slider":
                     # Read slider values and pack into action array.
                     action = np.array([s.value for s in slider_handles], dtype=np.float64)
-                    simulator.step(model, data, action=action)
+                    session.step_batch(action)
 
                 elif mode == "sine":
                     # Open-loop sinusoidal pattern.
@@ -148,17 +144,17 @@ def main(
                         ],
                         dtype=np.float64,
                     )
-                    simulator.step(model, data, action=action)
+                    session.step_batch(action)
                     step_idx += 1
 
                 elif mode == "script":
-                    advance_script_targets(model, data)
-                    simulator.step(model, data)
+                    session.advance_script_targets()
+                    session.step_batch(None)
 
                 else:
-                    simulator.step(model, data)
+                    session.step_batch(None)
 
-            renderer.render(workspace, anchor_pos=data.qpos)
+            renderer.render(workspace, anchor_pos=session.state.qpos[0])
 
             elapsed = time.perf_counter() - frame_start
             if elapsed < frame_dt:

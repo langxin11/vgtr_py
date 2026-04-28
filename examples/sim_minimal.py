@@ -1,7 +1,7 @@
 """最小化无头仿真器示例。
 
 演示流程：
-    Workspace JSON -> VGTRModel -> VGTRData -> Simulator.step()
+    Workspace JSON -> VGTRModel -> RuntimeSession.step_batch()
 
 Usage:
     uv run python examples/sim_minimal.py
@@ -12,9 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from vgtr_py.commands import load_workspace_from_paths
-from vgtr_py.data import make_data
-from vgtr_py.model import compile_workspace
-from vgtr_py.sim import Simulator
+from vgtr_py.runtime import RuntimeSession
 
 
 def main() -> None:
@@ -22,23 +20,21 @@ def main() -> None:
         config_path=None,
         example_path=Path("configs/example.json"),
     )
-    model = compile_workspace(workspace)
-    data = make_data(model)
-    simulator = Simulator()
+    session = RuntimeSession.from_workspace(workspace, control_mode="direct")
 
     print("Initial qpos:")
-    print(data.qpos)
+    print(session.state.qpos[0])
 
     for step_index in range(10):
-        simulator.step(model, data)
+        session.step_batch()
         print(
             f"step={step_index + 1} "
-            f"rod_length={data.rod_length.tolist()} "
-            f"rod_force={data.rod_axial_force.tolist()}"
+            f"rod_length={session.state.rod_length[0].tolist()} "
+            f"rod_force={session.state.rod_axial_force[0].tolist()}"
         )
 
     print("Final qpos:")
-    print(data.qpos)
+    print(session.state.qpos[0])
 
 
 if __name__ == "__main__":

@@ -1,18 +1,18 @@
-"""模型编译、数据生成与仿真步进测试。
+"""模型编译、统一 runtime 与适配器测试。
 
-覆盖 VGTRModel 编译、VGTRData 分配、Simulator 步进、
-投影层及 VGTREnv 环境接口的核心行为。
+覆盖 VGTRModel 编译、RuntimeSession 步进、投影层及 Gym 适配器核心行为。
 """
 
 from pathlib import Path
 
 import numpy as np
+import pytest
 
+from vgtr_py.adapters import VGTRGymEnv, VGTRVectorEnv
 from vgtr_py.config import default_config
-from vgtr_py.data import make_data
-from vgtr_py.env import VGTREnv
 from vgtr_py.model import compile_workspace
-from vgtr_py.projection import project_anchor_targets
+from vgtr_py.runtime import RuntimeSession, make_state, project_anchor_targets
+from vgtr_py.runtime.kernels import advance_script_targets
 from vgtr_py.schema import (
     ControlGroupFile,
     RodGroupFile,
@@ -20,8 +20,6 @@ from vgtr_py.schema import (
     WorkspaceFile,
     load_workspace_file,
 )
-from vgtr_py.sim import Simulator
-from vgtr_py.vector_env import VectorVGTREnv
 from vgtr_py.workspace import ROD_TYPE_ACTIVE, Workspace
 
 
@@ -64,27 +62,74 @@ def test_compile_workspace_exposes_projection_targets_and_limits() -> None:
     np.testing.assert_allclose(model.rod_force_limits, np.asarray([[-500.0, 500.0]]))
 
 
-def test_simulator_and_projection_update_runtime_stats() -> None:
+def test_runtime_session_and_projection_update_runtime_stats() -> None:
     workspace = make_workspace()
     model = compile_workspace(workspace)
-    data = make_data(model)
+    state = make_state(model, num_envs=1)
+    session = RuntimeSession(model=model, state=state, control_mode="projection")
 
-    ctrl_target = project_anchor_targets(model, data, np.asarray([[0.9, 0.0, 0.0]], dtype=np.float64))
-    assert ctrl_target.shape == (1,)
-    assert ctrl_target[0] > 0.0
+    ctrl_target = project_anchor_targets(
+        model,
+        state,
+        np.asarray([[0.9, 0.0, 0.0]], dtype=np.float64),
+    )
+    assert ctrl_target.shape == (1, 1)
+    assert ctrl_target[0, 0] > 0.0
 
-    simulator = Simulator()
-    simulator.step(model, data, ctrl_target)
+    session.step_batch(np.asarray([0.9, 0.0, 0.0], dtype=np.float64))
 
-    assert data.step_count == 1
-    assert data.rod_length.shape == (1,)
-    assert data.rod_target_length.shape == (1,)
-    assert data.rod_axial_force.shape == (1,)
-    assert data.rod_strain.shape == (1,)
+    assert state.step_count.tolist() == [1]
+    assert state.rod_length.shape == (1, 1)
+    assert state.rod_target_length.shape == (1, 1)
+    assert state.rod_axial_force.shape == (1, 1)
+    assert state.rod_strain.shape == (1, 1)
 
 
-def test_env_reset_step_returns_flat_observation_and_info() -> None:
-    env = VGTREnv.from_workspace(make_workspace(), max_steps=1)
+def test_runtime_session_single_env_helpers_and_env_view() -> None:
+    model = compile_workspace(make_workspace())
+    state = make_state(model, num_envs=2)
+    session = RuntimeSession(model=model, state=state, control_mode="direct", max_steps=2)
+
+    obs = session.observe_batch()
+    assert obs.shape[0] == 2
+
+    view = state.env_view(1)
+    assert view.env_index == 1
+    assert view.qpos.shape == (2, 3)
+    assert view.qpos.flags.writeable is False
+    assert view.ctrl.flags.writeable is False
+
+    single_session = RuntimeSession(model=model, state=make_state(model, num_envs=1), control_mode="direct")
+    one_obs = single_session.observe_one()
+    assert one_obs.ndim == 1
+    with pytest.raises(ValueError, match="num_envs == 1"):
+        session.observe_one()
+
+
+def test_runtime_session_explicit_mode_rejects_wrong_action_shape() -> None:
+    workspace = make_workspace()
+    direct_session = RuntimeSession.from_workspace(workspace, control_mode="direct")
+    projection_session = RuntimeSession.from_workspace(workspace, control_mode="projection")
+
+    with pytest.raises(ValueError, match="direct action"):
+        direct_session.step_batch(np.asarray([0.9, 0.0, 0.0], dtype=np.float64))
+    with pytest.raises(ValueError, match="projection action"):
+        projection_session.step_batch(np.asarray([0.2], dtype=np.float64))
+
+
+def test_advance_script_targets_uses_integer_script_indices() -> None:
+    model = compile_workspace(make_workspace())
+    state = make_state(model, num_envs=1)
+    state.step_count[:] = int(model.config.num_steps_action) + 1
+
+    advance_script_targets(model, state)
+
+    assert state.i_action.tolist() == [1]
+    np.testing.assert_allclose(state.ctrl_target, np.asarray([[1.0]], dtype=np.float64))
+
+
+def test_gym_env_reset_step_returns_flat_observation_and_info() -> None:
+    env = VGTRGymEnv.from_workspace(make_workspace(), max_steps=1, control_mode="projection")
 
     obs, info = env.reset(seed=42)
     assert obs.ndim == 1
@@ -102,7 +147,12 @@ def test_env_reset_step_returns_flat_observation_and_info() -> None:
 
 
 def test_vector_env_reset_step_returns_batched_observation_and_info() -> None:
-    env = VectorVGTREnv.from_workspace(make_workspace(), num_envs=3, max_steps=2)
+    env = VGTRVectorEnv.from_workspace(
+        make_workspace(),
+        num_envs=3,
+        max_steps=2,
+        control_mode="projection",
+    )
 
     obs, info = env.reset(seed=42)
     assert obs.ndim == 2
@@ -129,8 +179,13 @@ def test_vector_env_reset_step_returns_batched_observation_and_info() -> None:
 
 def test_vector_env_matches_single_env_for_same_action() -> None:
     workspace = make_workspace()
-    single_env = VGTREnv.from_workspace(workspace, max_steps=5)
-    vector_env = VectorVGTREnv.from_workspace(workspace, num_envs=2, max_steps=5)
+    single_env = VGTRGymEnv.from_workspace(workspace, max_steps=5, control_mode="projection")
+    vector_env = VGTRVectorEnv.from_workspace(
+        workspace,
+        num_envs=2,
+        max_steps=5,
+        control_mode="projection",
+    )
 
     single_env.reset(seed=7)
     vector_env.reset(seed=7)

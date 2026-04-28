@@ -1,7 +1,7 @@
 """最小化 Gymnasium 风格环境示例。
 
 演示流程：
-    Workspace JSON -> VGTREnv -> reset()/step()
+    Workspace JSON -> VGTRGymEnv -> reset()/step()
 
 Usage:
     uv run python examples/env_minimal.py
@@ -13,8 +13,8 @@ from pathlib import Path
 
 import numpy as np
 
+from vgtr_py.adapters import VGTRGymEnv
 from vgtr_py.commands import load_workspace_from_paths
-from vgtr_py.env import VGTREnv
 
 
 def main() -> None:
@@ -22,7 +22,7 @@ def main() -> None:
         config_path=None,
         example_path=Path("configs/example.json"),
     )
-    env = VGTREnv.from_workspace(workspace, max_steps=5)
+    env = VGTRGymEnv.from_workspace(workspace, max_steps=5, control_mode="direct")
 
     obs, info = env.reset(seed=42)
     print("observation shape:", obs.shape)

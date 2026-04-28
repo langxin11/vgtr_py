@@ -1,7 +1,7 @@
 """最小化带 Viser 渲染的运行时仿真循环。
 
 演示流程：
-    Workspace JSON -> VGTRModel -> VGTRData -> Simulator.step() -> SceneRenderer/Viser
+    Workspace JSON -> RuntimeSession.step_batch() -> SceneRenderer/Viser
 
 Usage:
     uv run python examples/runtime_viser_loop.py
@@ -18,10 +18,8 @@ import typer
 import viser
 
 from vgtr_py.commands import load_workspace_from_paths
-from vgtr_py.data import make_data
-from vgtr_py.model import compile_workspace
 from vgtr_py.rendering import SceneRenderer
-from vgtr_py.sim import Simulator, advance_script_targets
+from vgtr_py.runtime import RuntimeSession
 
 app = typer.Typer(add_completion=False)
 
@@ -69,13 +67,7 @@ def main(
     # ------------------------------------------------------------------
     # 2. Model/Data: compile immutable simulation constants and allocate mutable state.
     # ------------------------------------------------------------------
-    model = compile_workspace(workspace)
-    data = make_data(model)
-
-    # ------------------------------------------------------------------
-    # 3. Simulator: stateless stepper operating on model + data.
-    # ------------------------------------------------------------------
-    simulator = Simulator()
+    session = RuntimeSession.from_workspace(workspace, control_mode="direct")
 
     # ------------------------------------------------------------------
     # 4. Viser frontend: render simulated anchor positions from data.qpos.
@@ -83,7 +75,7 @@ def main(
     server = viser.ViserServer(host=host, port=port)
     renderer = SceneRenderer(server=server)
     renderer.setup_scene()
-    renderer.render(workspace, anchor_pos=data.qpos)
+    renderer.render(workspace, anchor_pos=session.state.qpos[0])
 
     url_host = "localhost" if host in {"0.0.0.0", "::"} else host
     print(f"Serving Viser viewer at http://{url_host}:{port}")
@@ -97,10 +89,10 @@ def main(
 
             for _ in range(steps_per_frame):
                 if not no_script:
-                    advance_script_targets(model, data)
-                simulator.step(model, data)
+                    session.advance_script_targets()
+                session.step_batch(None)
 
-            renderer.render(workspace, anchor_pos=data.qpos)
+            renderer.render(workspace, anchor_pos=session.state.qpos[0])
 
             elapsed = time.perf_counter() - frame_start
             if elapsed < frame_dt:

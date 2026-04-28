@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import numpy as np
 
 from vgtr_py.config import default_config
-from vgtr_py.data import make_data
 from vgtr_py.model import compile_workspace
+from vgtr_py.runtime import RuntimeSession, make_state
 from vgtr_py.schema import RodGroupFile, SiteFile, WorkspaceFile
 from vgtr_py.ui import VgtrUiApp
 from vgtr_py.workspace import Workspace
@@ -157,9 +157,9 @@ def test_update_status_includes_runtime_summary() -> None:
     workspace.ui.simulate = True
     workspace.ui.anchor_status[:] = np.asarray([2, 2, 2], dtype=np.int8)
     workspace.ui.rod_group_status[:] = np.asarray([2, 2], dtype=np.int8)
-    assert app.data is not None
-    app.data.step_count = 12
-    app.data.ctrl_target[:] = np.asarray([0.1, 0.2], dtype=np.float64)
+    assert app.session is not None
+    app.session.state.step_count[0] = 12
+    app.session.state.ctrl_target[0] = np.asarray([0.1, 0.2], dtype=np.float64)
 
     app._update_status()
 
@@ -204,7 +204,7 @@ def test_refresh_actuation_ui_per_rod_mode_builds_selected_rod_sliders() -> None
         renderer=SimpleNamespace(),
     )
     app.model = compile_workspace(workspace)
-    app.data = make_data(app.model)
+    app.session = RuntimeSession(app.model, make_state(app.model), control_mode="direct")
     app._actuation_folder = DummyFolder()
     app._actuation_status_markdown = SimpleNamespace(content="")
     app._actuation_mode_dropdown = SimpleNamespace(value="per-rod")
@@ -229,6 +229,7 @@ def test_set_batch_mode_disables_editing_controls() -> None:
 
     assert app._batch_mode is True
     assert workspace.ui.editing is False
+    assert app._batch_session is not None
     assert app._editing_checkbox.value is False
     assert app._editing_checkbox.disabled is True
     assert app._move_anchor_checkbox.value is False
@@ -240,7 +241,11 @@ def test_set_batch_mode_false_restores_editing_controls() -> None:
     workspace = make_workspace()
     app = VgtrUiApp(server=SimpleNamespace(), workspace=workspace, renderer=SimpleNamespace())
     app._batch_mode = True
-    app._batch_data = SimpleNamespace()
+    app._batch_session = RuntimeSession(
+        app.model,
+        make_state(app.model, num_envs=1),
+        control_mode="direct",
+    )
     app._batch_action = np.zeros((1, 1))
     app._editing_checkbox = SimpleNamespace(value=False, disabled=True)
     app._move_anchor_checkbox = SimpleNamespace(value=False, disabled=True)
@@ -250,7 +255,7 @@ def test_set_batch_mode_false_restores_editing_controls() -> None:
     app._set_batch_mode(False)
 
     assert app._batch_mode is False
-    assert app._batch_data is None
+    assert app._batch_session is None
     assert app._batch_action is None
     assert app._editing_checkbox.disabled is False
     assert app._move_anchor_checkbox.disabled is False
@@ -263,6 +268,6 @@ def test_rebuild_batch_runtime_updates_select_max() -> None:
 
     app._rebuild_batch_runtime(5)
 
-    assert app._batch_data is not None
-    assert app._batch_data.num_envs == 5
+    assert app._batch_session is not None
+    assert app._batch_session.num_envs == 5
     assert app._env_select_slider.max == 4.0
