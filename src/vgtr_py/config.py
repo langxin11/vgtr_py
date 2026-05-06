@@ -23,7 +23,7 @@ class SimulationConfig:
     h: float = 0.001
     # 速度阻尼因子，每步对速度进行衰减以抑制振荡。
     damping_ratio: float = 0.98
-    # 控制组目标值向当前值逼近的每步最大变化率。
+    # 执行器目标值向当前值逼近的每步最大变化率。
     contraction_percent_rate: float = 1e-3
     # 重力加速度缩放因子。
     gravity_factor: float = 50.0

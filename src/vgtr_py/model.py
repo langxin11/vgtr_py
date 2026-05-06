@@ -47,6 +47,7 @@ class VGTRModel:
         rod_group_mass: 杆组质量，shape (R,)。
         rod_radius: 杆组半径，shape (R,)。
         rod_sleeve_half: 杆组套筒显示参数，shape (R, 3)。
+        active_rod_indices: 主动杆索引，shape (A,)。
         control_group_ids: 控制组标识符列表。
         control_group_count: 控制组数量。
         control_group_enabled: 控制组是否启用，shape (C,)。
@@ -78,6 +79,7 @@ class VGTRModel:
     rod_group_mass: FloatArray
     rod_radius: FloatArray
     rod_sleeve_half: FloatArray
+    active_rod_indices: IntArray
     control_group_ids: list[str]
     control_group_count: int
     control_group_enabled: BoolArray
@@ -99,6 +101,7 @@ def compile_workspace(workspace: Workspace) -> VGTRModel:
     topology = workspace.topology
     script = workspace.script
     projection_anchor_indices = np.flatnonzero(topology.anchor_projection_target).astype(np.int32)
+    active_rod_indices = np.flatnonzero(topology.rod_type == 1).astype(np.int32)
     return VGTRModel(
         config=workspace.config,
         robot_config=workspace.robot_config,
@@ -122,6 +125,7 @@ def compile_workspace(workspace: Workspace) -> VGTRModel:
         rod_group_mass=topology.rod_group_mass.copy(),
         rod_radius=topology.rod_radius.copy(),
         rod_sleeve_half=topology.rod_sleeve_half.copy(),
+        active_rod_indices=active_rod_indices,
         control_group_ids=script.control_group_ids.copy(),
         control_group_count=int(script.num_channels),
         control_group_enabled=script.control_group_enabled.copy(),

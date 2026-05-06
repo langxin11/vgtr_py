@@ -51,12 +51,47 @@ def make_workspace() -> Workspace:
     )
 
 
+def make_two_active_rods_one_group_workspace() -> Workspace:
+    config = default_config()
+    config.contraction_percent_rate = 1.0
+    return Workspace.from_workspace_file(
+        WorkspaceFile(
+            sites={
+                "s1": SiteFile(pos=[0.0, 0.0, 0.0], fixed=True, projection_target=False),
+                "s2": SiteFile(pos=[1.0, 0.0, 0.0], projection_target=True),
+                "s3": SiteFile(pos=[2.0, 0.0, 0.0], projection_target=True),
+            },
+            rod_groups=[
+                RodGroupFile(
+                    name="g12",
+                    site1="s1",
+                    site2="s2",
+                    rod_type="active",
+                    control_group="shared",
+                    length_limits=[0.8, 1.2],
+                ),
+                RodGroupFile(
+                    name="g23",
+                    site1="s2",
+                    site2="s3",
+                    rod_type="active",
+                    control_group="shared",
+                    length_limits=[0.8, 1.2],
+                ),
+            ],
+            control_groups=[ControlGroupFile(name="shared", default_target=0.25)],
+        ),
+        config,
+    )
+
+
 def test_compile_workspace_exposes_projection_targets_and_limits() -> None:
     workspace = make_workspace()
     model = compile_workspace(workspace)
 
     assert model.anchor_count == 2
     assert model.projection_anchor_indices.tolist() == [1]
+    assert model.active_rod_indices.tolist() == [0]
     assert model.rod_type.tolist() == [ROD_TYPE_ACTIVE]
     np.testing.assert_allclose(model.rod_length_limits, np.asarray([[0.8, 1.2]]))
     np.testing.assert_allclose(model.rod_force_limits, np.asarray([[-500.0, 500.0]]))
@@ -83,6 +118,7 @@ def test_runtime_session_and_projection_update_runtime_stats() -> None:
     assert state.rod_target_length.shape == (1, 1)
     assert state.rod_axial_force.shape == (1, 1)
     assert state.rod_strain.shape == (1, 1)
+    assert state.rod_ctrl_target.shape == (1, 1)
 
 
 def test_runtime_session_single_env_helpers_and_env_view() -> None:
@@ -98,6 +134,8 @@ def test_runtime_session_single_env_helpers_and_env_view() -> None:
     assert view.qpos.shape == (2, 3)
     assert view.qpos.flags.writeable is False
     assert view.ctrl.flags.writeable is False
+    assert view.rod_ctrl.flags.writeable is False
+    assert view.rod_ctrl_target.flags.writeable is False
 
     single_session = RuntimeSession(
         model=model, state=make_state(model, num_envs=1), control_mode="direct"
@@ -119,6 +157,56 @@ def test_runtime_session_explicit_mode_rejects_wrong_action_shape() -> None:
         projection_session.step_batch(np.asarray([0.2], dtype=np.float64))
 
 
+def test_direct_mode_uses_per_active_rod_action_dimension() -> None:
+    workspace = make_two_active_rods_one_group_workspace()
+    model = compile_workspace(workspace)
+    state = make_state(model, num_envs=2)
+    session = RuntimeSession(model=model, state=state, control_mode="direct")
+
+    assert session.action_dim == 2
+    np.testing.assert_allclose(state.rod_ctrl_target, np.full((2, 2), 0.25))
+
+    with pytest.raises(ValueError, match="direct action"):
+        session.step_batch(np.asarray([0.5], dtype=np.float64))
+
+    session.step_batch(np.asarray([0.0, 1.0], dtype=np.float64))
+
+    np.testing.assert_allclose(state.rod_ctrl_target, np.asarray([[0.0, 1.0], [0.0, 1.0]]))
+    np.testing.assert_allclose(state.rod_ctrl, np.asarray([[0.0, 1.0], [0.0, 1.0]]))
+    np.testing.assert_allclose(state.rod_target_length[0], np.asarray([0.8, 1.2]))
+
+
+def test_control_group_mode_expands_to_per_rod_targets() -> None:
+    workspace = make_two_active_rods_one_group_workspace()
+    model = compile_workspace(workspace)
+    state = make_state(model, num_envs=1)
+    session = RuntimeSession(model=model, state=state, control_mode="control_group")
+
+    assert session.action_dim == 1
+    session.step_batch(np.asarray([0.75], dtype=np.float64))
+
+    np.testing.assert_allclose(state.ctrl_target, np.asarray([[0.75]]))
+    np.testing.assert_allclose(state.rod_ctrl_target, np.asarray([[0.75, 0.75]]))
+    np.testing.assert_allclose(state.rod_ctrl, np.asarray([[0.75, 0.75]]))
+
+
+def test_projection_mode_outputs_per_rod_targets_without_group_average() -> None:
+    workspace = make_two_active_rods_one_group_workspace()
+    model = compile_workspace(workspace)
+    state = make_state(model, num_envs=1)
+    session = RuntimeSession(model=model, state=state, control_mode="projection")
+
+    projected = project_anchor_targets(
+        model,
+        state,
+        np.asarray([0.9, 0.0, 0.0, 2.1, 0.0, 0.0], dtype=np.float64),
+    )
+
+    assert session.action_dim == 6
+    assert projected.shape == (1, 2)
+    np.testing.assert_allclose(projected, np.asarray([[0.25, 1.0]]))
+
+
 def test_advance_script_targets_uses_integer_script_indices() -> None:
     model = compile_workspace(make_workspace())
     state = make_state(model, num_envs=1)
@@ -128,6 +216,7 @@ def test_advance_script_targets_uses_integer_script_indices() -> None:
 
     assert state.i_action.tolist() == [1]
     np.testing.assert_allclose(state.ctrl_target, np.asarray([[1.0]], dtype=np.float64))
+    np.testing.assert_allclose(state.rod_ctrl_target, np.asarray([[1.0]], dtype=np.float64))
 
 
 def test_gym_env_reset_step_returns_flat_observation_and_info() -> None:

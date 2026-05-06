@@ -18,6 +18,8 @@ def build_observation(model: VGTRModel, state: RuntimeState) -> np.ndarray:
         state.rod_axial_force,
         state.rod_strain,
         state.rod_stalled.astype(np.float64),
+        state.rod_ctrl,
+        state.rod_ctrl_target,
         state.ctrl,
         state.ctrl_target,
         state.contact_mask.astype(np.float64),

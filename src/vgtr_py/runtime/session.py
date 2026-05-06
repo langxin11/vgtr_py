@@ -16,7 +16,7 @@ from .project import project_anchor_targets
 from .reward import build_info, compute_reward
 from .state import RuntimeState
 
-ControlMode = Literal["direct", "projection"]
+ControlMode = Literal["direct", "control_group", "projection"]
 
 
 @dataclass(slots=True)
@@ -29,7 +29,7 @@ class RuntimeSession:
     max_steps: int | None = None
 
     def __post_init__(self) -> None:
-        if self.control_mode not in {"direct", "projection"}:
+        if self.control_mode not in {"direct", "control_group", "projection"}:
             raise ValueError(f"unsupported control_mode {self.control_mode!r}")
 
     @classmethod
@@ -53,8 +53,10 @@ class RuntimeSession:
     @property
     def action_dim(self) -> int:
         if self.control_mode == "projection":
-            return max(int(self.model.projection_anchor_indices.shape[0] * 3), 1)
-        return max(int(self.model.control_group_count), 1)
+            return int(self.model.projection_anchor_indices.shape[0] * 3)
+        if self.control_mode == "control_group":
+            return int(self.model.control_group_count)
+        return int(self.model.active_rod_indices.shape[0])
 
     def reset(self, *, seed: int | None = None) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         reset_state(self.model, self.state, seed=seed)
@@ -70,6 +72,24 @@ class RuntimeSession:
         return build_info(self.model, self.state)
 
     def _normalize_direct_action(self, action: np.ndarray | None) -> np.ndarray | None:
+        active_count = int(self.model.active_rod_indices.shape[0])
+        if action is None:
+            return None
+        action_array = np.asarray(action, dtype=np.float64)
+        expected = (self.num_envs, active_count)
+        if action_array.ndim == 1:
+            if action_array.shape[0] != active_count:
+                raise ValueError(
+                    f"expected direct action with shape ({active_count},), got {action_array.shape}"
+                )
+            action_array = np.broadcast_to(action_array, expected)
+        if action_array.shape != expected:
+            raise ValueError(
+                f"expected direct action with shape {expected}, got {action_array.shape}"
+            )
+        return action_array
+
+    def _normalize_control_group_action(self, action: np.ndarray | None) -> np.ndarray | None:
         if self.model.control_group_count == 0:
             if action is None:
                 return None
@@ -80,7 +100,7 @@ class RuntimeSession:
             if action_array.shape == expected:
                 return None
             raise ValueError(
-                "direct control mode requires no control groups; pass None or a dummy shape (1,) / (E, 1)"
+                "control_group mode requires no control groups; pass None or a dummy shape (1,) / (E, 1)"
             )
         action_array = (
             np.asarray(action, dtype=np.float64) if action is not None else self.state.ctrl_target
@@ -89,12 +109,12 @@ class RuntimeSession:
         if action_array.ndim == 1:
             if action_array.shape[0] != self.model.control_group_count:
                 raise ValueError(
-                    f"expected direct action with shape ({self.model.control_group_count},), got {action_array.shape}"
+                    f"expected control_group action with shape ({self.model.control_group_count},), got {action_array.shape}"
                 )
             action_array = np.broadcast_to(action_array, expected)
         if action_array.shape != expected:
             raise ValueError(
-                f"expected direct action with shape {expected}, got {action_array.shape}"
+                f"expected control_group action with shape {expected}, got {action_array.shape}"
             )
         return action_array
 
@@ -118,14 +138,16 @@ class RuntimeSession:
             )
         return action_array
 
-    def _resolve_ctrl_target(
+    def _resolve_targets(
         self,
         action: np.ndarray | None,
-    ) -> tuple[np.ndarray | None, np.ndarray | None]:
+    ) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
         if self.control_mode == "projection":
             raw_action = self._normalize_projection_action(action)
-            return project_anchor_targets(self.model, self.state, raw_action), raw_action
-        return self._normalize_direct_action(action), None
+            return project_anchor_targets(self.model, self.state, raw_action), None, raw_action
+        if self.control_mode == "control_group":
+            return None, self._normalize_control_group_action(action), None
+        return self._normalize_direct_action(action), None, None
 
     def _truncated(self) -> np.ndarray:
         if self.max_steps is None:
@@ -136,8 +158,8 @@ class RuntimeSession:
         self,
         action: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, np.ndarray]]:
-        ctrl_target, reward_action = self._resolve_ctrl_target(action)
-        step_state(self.model, self.state, ctrl_target)
+        rod_ctrl_target, ctrl_target, reward_action = self._resolve_targets(action)
+        step_state(self.model, self.state, rod_ctrl_target, ctrl_target)
         observation = self.observe_batch()
         reward = compute_reward(self.model, self.state, reward_action)
         terminated = np.zeros(self.num_envs, dtype=np.bool_)

@@ -15,6 +15,17 @@ def _batch_rod_lengths(qpos: np.ndarray, rod_anchors: np.ndarray) -> np.ndarray:
     return np.linalg.norm(diff, axis=2)
 
 
+def _default_rod_ctrl(model: VGTRModel) -> np.ndarray:
+    active_indices = model.active_rod_indices
+    defaults = np.zeros(active_indices.shape[0], dtype=np.float64)
+    if defaults.size == 0 or model.control_group_count == 0:
+        return defaults
+    groups = model.rod_control_group[active_indices]
+    valid = (groups >= 0) & (groups < model.control_group_count)
+    defaults[valid] = model.control_group_default_target[groups[valid]]
+    return np.clip(defaults, 0.0, 1.0)
+
+
 def make_state(
     model: VGTRModel,
     num_envs: int = 1,
@@ -35,6 +46,14 @@ def make_state(
         ctrl_target=np.broadcast_to(
             model.control_group_default_target,
             (num_envs, model.control_group_count),
+        ).copy(),
+        rod_ctrl=np.broadcast_to(
+            _default_rod_ctrl(model),
+            (num_envs, model.active_rod_indices.shape[0]),
+        ).copy(),
+        rod_ctrl_target=np.broadcast_to(
+            _default_rod_ctrl(model),
+            (num_envs, model.active_rod_indices.shape[0]),
         ).copy(),
         rod_length=np.zeros((num_envs, model.rod_count), dtype=np.float64),
         rod_target_length=np.zeros((num_envs, model.rod_count), dtype=np.float64),
@@ -61,6 +80,9 @@ def reset_state(model: VGTRModel, state: RuntimeState, *, seed: int | None = Non
     state.forces.fill(0.0)
     state.ctrl[...] = model.control_group_default_target[None, :]
     state.ctrl_target[...] = model.control_group_default_target[None, :]
+    default_rod_ctrl = _default_rod_ctrl(model)
+    state.rod_ctrl[...] = default_rod_ctrl[None, :]
+    state.rod_ctrl_target[...] = default_rod_ctrl[None, :]
     state.rod_length[...] = _batch_rod_lengths(state.qpos, model.rod_anchors)
     state.rod_target_length[...] = model.rod_rest_length[None, :]
     state.rod_target_override.fill(np.nan)

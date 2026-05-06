@@ -159,13 +159,13 @@ def test_update_status_includes_runtime_summary() -> None:
     workspace.ui.rod_group_status[:] = np.asarray([2, 2], dtype=np.int8)
     assert app.session is not None
     app.session.state.step_count[0] = 12
-    app.session.state.ctrl_target[0] = np.asarray([0.1, 0.2], dtype=np.float64)
+    app.session.state.rod_ctrl_target[0] = np.asarray([0.1, 0.2], dtype=np.float64)
 
     app._update_status()
 
     assert "running" in app._status_markdown.content
     assert "Step:** 12" in app._status_markdown.content
-    assert "Ctrl Target" in app._status_markdown.content
+    assert "Rod Ctrl Target" in app._status_markdown.content
 
 
 def test_refresh_actuation_ui_per_rod_mode_builds_selected_rod_sliders() -> None:

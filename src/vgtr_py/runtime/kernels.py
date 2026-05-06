@@ -9,8 +9,24 @@ from ..workspace import ROD_TYPE_ACTIVE, ROD_TYPE_ELASTIC, ROD_TYPE_PASSIVE
 from .state import RuntimeState
 
 
+def expand_control_groups_to_rods(model: VGTRModel, state: RuntimeState) -> None:
+    """Expand control-group targets into per-active-rod targets."""
+    active_indices = model.active_rod_indices
+    if active_indices.size == 0:
+        return
+    if model.control_group_count == 0:
+        state.rod_ctrl_target.fill(0.0)
+        return
+    groups = model.rod_control_group[active_indices]
+    valid = (groups >= 0) & (groups < model.control_group_count)
+    expanded = np.zeros((state.num_envs, active_indices.shape[0]), dtype=np.float64)
+    if np.any(valid):
+        expanded[:, valid] = state.ctrl_target[:, groups[valid]]
+    state.rod_ctrl_target[...] = np.clip(expanded, 0.0, 1.0)
+
+
 def set_ctrl_target(model: VGTRModel, state: RuntimeState, ctrl_target: np.ndarray | None) -> None:
-    """Validate and write control targets with env-major semantics."""
+    """Validate and write control-group targets with env-major semantics."""
     if ctrl_target is None:
         return
     if model.control_group_count == 0:
@@ -26,6 +42,29 @@ def set_ctrl_target(model: VGTRModel, state: RuntimeState, ctrl_target: np.ndarr
     if target.shape != expected:
         raise ValueError(f"expected control target with shape {expected}, got {target.shape}")
     state.ctrl_target[...] = np.clip(target, 0.0, 1.0)
+    expand_control_groups_to_rods(model, state)
+
+
+def set_rod_ctrl_target(
+    model: VGTRModel,
+    state: RuntimeState,
+    rod_ctrl_target: np.ndarray | None,
+) -> None:
+    """Validate and write per-active-rod control targets with env-major semantics."""
+    if rod_ctrl_target is None:
+        return
+    target = np.asarray(rod_ctrl_target, dtype=np.float64)
+    active_count = int(model.active_rod_indices.shape[0])
+    expected = (state.num_envs, active_count)
+    if target.ndim == 1:
+        if target.shape[0] != active_count:
+            raise ValueError(
+                f"expected rod control target with shape ({active_count},), got {target.shape}"
+            )
+        target = np.broadcast_to(target, expected)
+    if target.shape != expected:
+        raise ValueError(f"expected rod control target with shape {expected}, got {target.shape}")
+    state.rod_ctrl_target[...] = np.clip(target, 0.0, 1.0)
 
 
 def advance_script_targets(model: VGTRModel, state: RuntimeState) -> None:
@@ -42,18 +81,29 @@ def advance_script_targets(model: VGTRModel, state: RuntimeState) -> None:
     state.i_action_prev[update_mask] = state.i_action[update_mask]
     state.i_action[update_mask] = next_action
     state.ctrl_target[update_mask] = np.clip(model.script[:, next_action].T, 0.0, 1.0)
+    expand_control_groups_to_rods(model, state)
 
 
 def update_ctrl(model: VGTRModel, state: RuntimeState) -> None:
     if state.ctrl.size == 0:
+        group_delta = None
+    else:
+        group_delta = np.clip(
+            state.ctrl_target - state.ctrl,
+            -model.config.contraction_percent_rate,
+            model.config.contraction_percent_rate,
+        )
+        state.ctrl += group_delta
+        np.clip(state.ctrl, 0.0, 1.0, out=state.ctrl)
+    if state.rod_ctrl.size == 0:
         return
-    delta = np.clip(
-        state.ctrl_target - state.ctrl,
+    rod_delta = np.clip(
+        state.rod_ctrl_target - state.rod_ctrl,
         -model.config.contraction_percent_rate,
         model.config.contraction_percent_rate,
     )
-    state.ctrl += delta
-    np.clip(state.ctrl, 0.0, 1.0, out=state.ctrl)
+    state.rod_ctrl += rod_delta
+    np.clip(state.rod_ctrl, 0.0, 1.0, out=state.rod_ctrl)
 
 
 def compute_target_lengths(model: VGTRModel, state: RuntimeState) -> np.ndarray:
@@ -69,12 +119,12 @@ def compute_target_lengths(model: VGTRModel, state: RuntimeState) -> np.ndarray:
     elastic_mask = model.rod_type == ROD_TYPE_ELASTIC
     passive_mask = model.rod_type == ROD_TYPE_PASSIVE
 
-    if np.any(active_mask) and state.ctrl.size:
-        active_groups = model.rod_control_group[active_mask]
-        active_limits = model.rod_length_limits[active_mask]
-        target_lengths[:, active_mask] = (
+    active_indices = model.active_rod_indices
+    if active_indices.size and state.rod_ctrl.size:
+        active_limits = model.rod_length_limits[active_indices]
+        target_lengths[:, active_indices] = (
             active_limits[:, 0][None, :]
-            + (active_limits[:, 1] - active_limits[:, 0])[None, :] * state.ctrl[:, active_groups]
+            + (active_limits[:, 1] - active_limits[:, 0])[None, :] * state.rod_ctrl
         )
 
     override_mask = np.isfinite(state.rod_target_override) & active_mask[None, :]
@@ -184,10 +234,12 @@ def integrate(model: VGTRModel, state: RuntimeState) -> None:
 def step_state(
     model: VGTRModel,
     state: RuntimeState,
+    rod_ctrl_target: np.ndarray | None = None,
     ctrl_target: np.ndarray | None = None,
 ) -> None:
     """Advance a runtime state by one step."""
     set_ctrl_target(model, state, ctrl_target)
+    set_rod_ctrl_target(model, state, rod_ctrl_target)
     update_ctrl(model, state)
     compute_forces(model, state)
     integrate(model, state)

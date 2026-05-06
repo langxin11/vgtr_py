@@ -28,6 +28,8 @@ class RuntimeStateView:
     forces: FloatArray
     ctrl: FloatArray
     ctrl_target: FloatArray
+    rod_ctrl: FloatArray
+    rod_ctrl_target: FloatArray
     rod_length: FloatArray
     rod_target_length: FloatArray
     rod_target_override: FloatArray
@@ -50,6 +52,8 @@ class RuntimeState:
     forces: FloatArray
     ctrl: FloatArray
     ctrl_target: FloatArray
+    rod_ctrl: FloatArray
+    rod_ctrl_target: FloatArray
     rod_length: FloatArray
     rod_target_length: FloatArray
     rod_target_override: FloatArray
@@ -82,6 +86,8 @@ class RuntimeState:
             forces=_readonly_view(self.forces[index]),
             ctrl=_readonly_view(self.ctrl[index]),
             ctrl_target=_readonly_view(self.ctrl_target[index]),
+            rod_ctrl=_readonly_view(self.rod_ctrl[index]),
+            rod_ctrl_target=_readonly_view(self.rod_ctrl_target[index]),
             rod_length=_readonly_view(self.rod_length[index]),
             rod_target_length=_readonly_view(self.rod_target_length[index]),
             rod_target_override=_readonly_view(self.rod_target_override[index]),
