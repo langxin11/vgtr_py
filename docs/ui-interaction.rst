@@ -125,7 +125,7 @@ Control Mode 面板
 - ``Manual Mode``:
 
   - ``control-groups``: 按控制组维度生成滑块（每个控制组一个滑块）。
-  - ``per-rod``: 按杆组维度生成滑块（每个主动杆一个滑块）。
+- ``per-rod``: 按主动杆维度生成滑块（每个主动杆一个滑块）。
 
 切换模式时会自动清理旧滑块、重置目标覆盖值，并重新生成对应控件。
 
@@ -134,8 +134,9 @@ Actuation Controls 面板
 
 该面板内容根据 ``Manual Mode`` 动态生成：
 
-- ``control-groups`` 模式下，滑块数量等于模型中的控制组数量，每个滑块写入 ``state.ctrl_target`` 的对应通道。
-- ``per-rod`` 模式下，滑块数量等于主动杆组数量，直接覆盖 ``state.rod_target_override``。
+- ``control-groups`` 模式下，滑块数量等于模型中的控制组数量，每个滑块写入 ``state.ctrl_target``，再同步展开到 ``state.rod_ctrl_target``。
+- ``per-rod`` 模式下，滑块数量等于主动杆数量，直接写入 ``state.rod_ctrl_target``。
+- ``state.rod_target_override`` 仅保留给直接物理长度覆盖的调试路径。
 - 无有效模型或数据时，该面板自动隐藏。
 
 

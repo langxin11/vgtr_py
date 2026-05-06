@@ -38,6 +38,7 @@ from .history import WorkspaceHistory
 from .model import VGTRModel, compile_workspace
 from .rendering import SceneRenderer
 from .runtime.alloc import make_state
+from .runtime.kernels import expand_control_groups_to_rods
 from .runtime.session import RuntimeSession
 from .workspace import ROD_TYPE_ACTIVE, Workspace, WorkspaceSnapshot
 
@@ -321,16 +322,10 @@ class VgtrUiApp:
         """为每个 env 生成批量动作。"""
         if self.model is None:
             return np.zeros((0,), dtype=np.float64)
-        cg = self.model.control_group_count
-        if self.model.projection_anchor_indices.size:
-            dim = int(self.model.projection_anchor_indices.shape[0] * 3)
-        elif cg:
-            dim = cg
-        else:
-            dim = 1
+        dim = int(self.model.active_rod_indices.shape[0])
         n = self._batch_session.num_envs if self._batch_session is not None else 1
         actions = np.zeros((n, dim), dtype=np.float64)
-        if cg:
+        if dim:
             actions[:, 0] = np.linspace(0.0, 1.0, n, dtype=np.float64)
         return actions
 
@@ -585,7 +580,7 @@ class VgtrUiApp:
         @actuation_mode.on_update
         def _(_):
             with self._lock:
-                if self.session is not None and actuation_mode.value == "control-groups":
+                if self.session is not None:
                     self.session.state.rod_target_override[0].fill(np.nan)
                 self._refresh_actuation_ui()
                 self.refresh()
@@ -847,6 +842,7 @@ class VgtrUiApp:
                     with self._lock:
                         if self.session is not None:
                             self.session.state.ctrl_target[0, idx] = s.value
+                            expand_control_groups_to_rods(self.session.model, self.session.state)
                             if self.session.state.rod_target_override.shape[1]:
                                 self.session.state.rod_target_override[0].fill(np.nan)
 
@@ -856,7 +852,7 @@ class VgtrUiApp:
         """渲染按杆件直接控制的滑块。"""
         if self.session is None or self.model is None:
             return
-        active_indices = np.flatnonzero(self.model.rod_type == ROD_TYPE_ACTIVE).tolist()
+        active_indices = self.model.active_rod_indices.tolist()
         if not active_indices:
             self._actuation_folder.visible = False
             if self._actuation_status_markdown is not None:
@@ -886,31 +882,26 @@ class VgtrUiApp:
 
         with self._actuation_folder:
             for rod_index in slider_indices:
-                lo, hi = self.model.rod_length_limits[rod_index]
+                active_col = active_indices.index(rod_index)
                 current = float(
-                    self.session.state.rod_target_override[0, rod_index]
-                    if np.isfinite(self.session.state.rod_target_override[0, rod_index])
-                    else self.session.state.rod_target_length[0, rod_index]
+                    self.session.state.rod_ctrl_target[0, active_col]
                 )
-
-                # Convert current length to 0-1 normalized value: 0=min_length(lo), 1=max_length(hi)
-                current_norm = 0.0 if hi <= lo else (np.clip(current, lo, hi) - lo) / (hi - lo)
 
                 slider = self.server.gui.add_slider(
                     f"Rod {rod_index}",
                     min=0.0,
                     max=1.0,
                     step=0.01,
-                    initial_value=float(current_norm),
+                    initial_value=current,
                 )
 
                 @slider.on_update
-                def _(_, idx=rod_index, s=slider, min_l=float(lo), max_l=float(hi)):
+                def _(_, active_idx=active_col, s=slider):
                     with self._lock:
                         if self.session is not None:
-                            self.session.state.rod_target_override[0, idx] = min_l + s.value * (
-                                max_l - min_l
-                            )
+                            self.session.state.rod_ctrl_target[0, active_idx] = s.value
+                            if self.session.state.rod_target_override.shape[1]:
+                                self.session.state.rod_target_override[0].fill(np.nan)
 
                 self._control_sliders.append(slider)
 
@@ -1163,33 +1154,35 @@ class VgtrUiApp:
         n_c = self.workspace.script.num_channels
         sel_a = np.flatnonzero(self.workspace.ui.anchor_status == 2).tolist()
         sel_r = np.flatnonzero(self.workspace.ui.rod_group_status == 2).tolist()
-        ctrl_target = np.zeros((0,), dtype=np.float64)
+        rod_ctrl_target = np.zeros((0,), dtype=np.float64)
         if self._batch_mode and self._batch_session is not None:
             selected_env = (
                 int(self._env_select_slider.value) if self._env_select_slider is not None else 0
             )
             selected_env = max(0, min(selected_env, self._batch_session.num_envs - 1))
             step_count = int(self._batch_session.state.step_count[selected_env])
-            ctrl_target = self._batch_session.state.ctrl_target[selected_env]
+            rod_ctrl_target = self._batch_session.state.rod_ctrl_target[selected_env]
         elif self.session is not None:
             step_count = int(self.session.state.step_count[0])
-            ctrl_target = self.session.state.ctrl_target[0]
+            rod_ctrl_target = self.session.state.rod_ctrl_target[0]
         else:
             step_count = 0
         sim_state = "running" if self.workspace.ui.simulate else "paused"
         effective_hz = int(self.simulation_steps_per_second) if self.workspace.ui.simulate else 0
         realtime_factor = self.simulation_steps_per_second * self.workspace.config.h
         ctrl_summary = "[]"
-        if ctrl_target.size:
-            ctrl_values = [round(float(v), 3) for v in ctrl_target[: min(4, ctrl_target.size)]]
+        if rod_ctrl_target.size:
+            ctrl_values = [
+                round(float(v), 3) for v in rod_ctrl_target[: min(4, rod_ctrl_target.size)]
+            ]
             ctrl_summary = f"{ctrl_values}"
-            if ctrl_target.size > 4:
-                ctrl_summary += f" +{ctrl_target.size - 4} more"
+            if rod_ctrl_target.size > 4:
+                ctrl_summary += f" +{rod_ctrl_target.size - 4} more"
 
         self._status_markdown.content = (
             f"**State:** {sim_state} | **Step:** {step_count} | **Rate:** {effective_hz} steps/s | "
             f"**Realtime:** {realtime_factor:.2f}x  \n"
-            f"**Model:** A={n_a}, R={n_r}, CG={n_c} | **Ctrl Target:** {ctrl_summary}  \n"
+            f"**Model:** A={n_a}, R={n_r}, CG={n_c} | **Rod Ctrl Target:** {ctrl_summary}  \n"
             f"**Selection:** A={len(sel_a)} {self._format_index_summary(sel_a)}, "
             f"R={len(sel_r)} {self._format_index_summary(sel_r)}"
         )
