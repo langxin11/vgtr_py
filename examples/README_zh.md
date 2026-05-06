@@ -63,7 +63,7 @@ uv run python examples/runtime_viser_batch_loop.py --mode fixed --control-mode p
 ```
 
 在单个 Viser 场景中使用批处理网格句柄渲染多个 `RuntimeSession` 环境。
-支持 `direct` 和 `projection` 控制模式，以及 `sine`/`fixed` 作动模式。
+支持 `direct`、`control_group` 和 `projection` 控制模式，以及 `sine`/`fixed` 作动模式。默认 `GeoTrussRover.json` 使用 `direct` 模式逐主动杆驱动；需要联动控制组通道时使用 `control_group`。
 
 ## 手动控制 Viser 循环
 

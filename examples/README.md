@@ -66,10 +66,11 @@ uv run python examples/runtime_viser_batch_loop.py --example configs/crawling-bo
 ```
 
 Multiple `RuntimeSession` envs in one Viser scene using batched mesh handles.
-Supports `direct` and `projection` control modes, plus `sine`/`fixed` actuation.
-The default `GeoTrussRover.json` path uses `direct` mode and drives all control
-groups with phase-shifted sine waves. Use `projection` mode when you want to
-drive projection-target anchor positions instead of control groups.
+Supports `direct`, `control_group`, and `projection` control modes, plus
+`sine`/`fixed` actuation. The default `GeoTrussRover.json` path uses `direct`
+mode and drives all active rods with phase-shifted sine waves. Use
+`control_group` for linked control-group channels, or `projection` when you want
+to drive projection-target anchor positions.
 
 ## Manual Control Viser Loop
 

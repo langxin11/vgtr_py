@@ -37,7 +37,7 @@
 
         投影层（可选，降维控制）：
         runtime.project.project_anchor_targets()
-        目标锚点位置 → 控制组目标值
+        目标锚点位置 → 逐主动杆目标值
 ```
 
 ## 核心模块
@@ -45,7 +45,7 @@
 | 模块 | 职责 |
 |------|------|
 | `workspace` | 工作区容器：拓扑、物理参数、脚本、UI 状态 |
-| `model` | 编译 workspace → 不可变 `VGTRModel`，含预计算的杆组索引、行程/力限、控制组映射 |
+| `model` | 编译 workspace → 不可变 `VGTRModel`，含预计算的主动杆索引、行程/力限、控制组映射 |
 | `runtime` | 统一运行时内核：`RuntimeState`、`RuntimeSession`、projection/observation/reward helpers |
 | `adapters` | Gymnasium 适配层：`VGTRGymEnv` / `VGTRVectorEnv` |
 | `kinematics` | 杆组派生几何：方向、中点、套筒姿态（position + quat） |

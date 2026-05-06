@@ -35,7 +35,7 @@ F = clamp(F, F_min, F_max)                # 出力限幅
 
 | 类型 | 目标长度 |
 |------|----------|
-| Active | `L_min + (L_max - L_min) * ctrl[group]`，ctrl ∈ [0,1] |
+| Active | `L_min + (L_max - L_min) * rod_ctrl[active_rod]`，rod_ctrl ∈ [0,1] |
 | Passive | `clamp(rest_length, L_min, L_max)` |
 | Elastic | `clamp(rest_length, L_min, L_max)`（当前与 Passive 相同，预留 XPBD 柔性差异） |
 
@@ -46,11 +46,11 @@ F = clamp(F, F_min, F_max)                # 出力限幅
 控制值不直接跳变，而是按速率限制平滑逼近：
 
 ```
-delta = clip(ctrl_target - ctrl, -rate, rate)
-ctrl += delta
+delta = clip(rod_ctrl_target - rod_ctrl, -rate, rate)
+rod_ctrl += delta
 ```
 
-`contraction_percent_rate` 默认 1e-3，模拟真实执行器的响应延迟。
+`contraction_percent_rate` 默认 1e-3，模拟真实执行器的响应延迟。`ctrl / ctrl_target` 仍保留为控制组层状态；脚本或控制组模式会先写入控制组目标，再展开为逐主动杆目标。
 
 ### 1.4 堵转检测
 

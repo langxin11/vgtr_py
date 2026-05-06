@@ -180,14 +180,14 @@ rod_ctrl_target[rod] = ctrl_target[rod_control_group[rod]]
 
 投影层不应按控制组取平均。控制组平均会丢失同组内不同杆的几何差异，并让“有控制组但仍想逐杆控制”的场景变得困难。若调用方需要控制组语义，应在更高层显式把逐杆目标聚合或绑定，而不是让投影内核隐式合并。
 
-### 3.4 实现状态与迁移
+### 3.4 运行时模式
 
-当前运行时代码仍以 `ctrl / ctrl_target` 作为主要控制通道，逐杆控制主要通过 `rod_target_override` 或“每根主动杆独立控制组”的 JSON 配置实现。目标架构应迁移为：
+当前运行时代码采用显式控制模式：
 
-- `rod_ctrl / rod_ctrl_target` 成为物理内核的底层控制输入。
-- `direct` 模式默认输出逐主动杆目标，action 维度 = 主动杆数量。
-- `control_group` 模式作为显式上层模式保留，负责把控制组目标展开到逐杆目标。
-- `projection` 模式直接输出逐主动杆目标，不再在 `runtime/project.py` 内按控制组平均。
+- `direct`：action 维度 = 主动杆数量，直接写入 `rod_ctrl_target`。
+- `control_group`：action 维度 = 控制组数量，写入 `ctrl_target` 后展开到 `rod_ctrl_target`。
+- `projection`：action 维度 = projection target 锚点数量 × 3，投影后直接输出逐主动杆目标。
+- `rod_target_override`：保留给手动调试，直接覆盖最终物理目标长度。
 
 ## 4. RL 接口设计
 

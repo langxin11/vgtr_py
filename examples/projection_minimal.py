@@ -30,14 +30,14 @@ def main() -> None:
     desired_targets[:, 0] -= 0.2
 
     projected_action = desired_targets.reshape(-1)
-    ctrl_target = project_anchor_targets(session.model, session.state, projected_action)[0]
-    print("Projected control target:", ctrl_target.tolist())
+    rod_target = project_anchor_targets(session.model, session.state, projected_action)[0]
+    print("Projected rod target:", rod_target.tolist())
 
     for step_index in range(19):
         session.step_batch(projected_action)
         print(
             f"step={step_index + 1} "
-            f"ctrl={session.state.ctrl[0].tolist()} "
+            f"rod_ctrl={session.state.rod_ctrl[0].tolist()} "
             f"rod_target_length={session.state.rod_target_length[0].tolist()}"
         )
 

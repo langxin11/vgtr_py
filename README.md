@@ -40,7 +40,7 @@ simulation.
 - 🎨 **Mechanical Prismatic Rendering**: A three-part rod rendering system (Sleeve + Dual internal rods) that visually represents the sliding motion of prismatic joints.
 - 🎛️ **Real-time Parameter Tuning**:
     - **Live Tuning**: Dynamically adjust stiffness, damping, and friction coefficients during simulation.
-    - **Dynamic Actuation**: Automatically generates UI sliders for control groups, supporting both manual override and script-driven execution.
+    - **Dynamic Actuation**: Automatically generates UI sliders for per-rod actuators or linked control groups, supporting manual and script-driven execution.
 
 ## 🏛️ Architecture: Boundary Isolation Strategy
 

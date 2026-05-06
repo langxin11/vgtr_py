@@ -42,7 +42,7 @@ def _make_fixed_action(session: RuntimeSession) -> np.ndarray:
         actions[:] = rest_targets[None, :]
         x_offsets = np.linspace(-0.2, 0.2, session.num_envs, dtype=np.float32)
         actions[:, 0] += x_offsets
-    elif session.model.control_group_count:
+    elif session.model.active_rod_indices.size:
         targets = np.linspace(0.0, 1.0, session.num_envs, dtype=np.float32)
         actions[:, 0] = targets
     return actions
@@ -70,11 +70,12 @@ def _make_sine_action(session: RuntimeSession, step_idx: int, dt: float = 0.02) 
             freq = 0.08 + i * 0.03
             actions[i, :] = rest_targets
             actions[i, 0] += 0.2 * math.sin(2.0 * math.pi * freq * t)
-    elif session.model.control_group_count:
-        phase_offset = (2.0 * math.pi) / max(session.model.control_group_count, 1)
+    elif session.model.active_rod_indices.size:
+        active_count = int(session.model.active_rod_indices.shape[0])
+        phase_offset = (2.0 * math.pi) / max(active_count, 1)
         for i in range(session.num_envs):
             freq = 0.05 + i * 0.02
-            for j in range(session.model.control_group_count):
+            for j in range(active_count):
                 phase = j * phase_offset
                 actions[i, j] = 0.5 + 0.5 * math.sin(2.0 * math.pi * freq * t + phase)
     return actions
@@ -128,7 +129,7 @@ def main(
     ] = "sine",
     control_mode: Annotated[
         str,
-        typer.Option(help="Control semantics: direct or projection."),
+        typer.Option(help="Control semantics: direct, control_group, or projection."),
     ] = "direct",
 ) -> None:
     """启动批量环境实时渲染查看器。"""
@@ -139,10 +140,13 @@ def main(
         config_path=config,
         example_path=example,
     )
-    if control_mode == "direct" and workspace.script.num_channels <= 0:
+    if control_mode == "direct" and not np.any(workspace.topology.rod_type == 1):
         raise typer.BadParameter(
-            "direct control mode requires at least one control group in the workspace. "
-            "Choose a workspace with control groups, or switch to --control-mode projection."
+            "direct control mode requires at least one active rod in the workspace."
+        )
+    if control_mode == "control_group" and workspace.script.num_channels <= 0:
+        raise typer.BadParameter(
+            "control_group mode requires at least one control group in the workspace."
         )
     projection_target_count = int(np.count_nonzero(workspace.topology.anchor_projection_target))
     if control_mode == "projection" and projection_target_count <= 0:

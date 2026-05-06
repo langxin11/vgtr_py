@@ -23,7 +23,7 @@
 - **轻量仿真**：基于显式欧拉积分，支持变长度杆组约束、脚本驱动、重力、阻尼、地面摩擦
 - **渲染系统**：基于 Viser 的三段式杆组渲染（sleeve + left + right），支持套筒中心对齐
 - **RL 环境接口**：`VGTRGymEnv` / `VGTRVectorEnv` 已建立在 `RuntimeSession` 之上，观测空间包含杆级力学统计量
-- **可行性投影层**：`runtime.project` + `kinematics.py` 提供节点目标到控制组目标值的约束投影能力
+- **可行性投影层**：`runtime.project` + `kinematics.py` 提供节点目标到逐主动杆目标值的约束投影能力
 - **CPU 批量 rollout 基线**：统一 runtime 已支持同构多环境的 NumPy 向量化步进与批量渲染对接
 
 ## 近期任务

@@ -70,7 +70,7 @@ def main(
         config_path=config,
         example_path=example,
     )
-    session = RuntimeSession.from_workspace(workspace, control_mode="direct")
+    session = RuntimeSession.from_workspace(workspace, control_mode="control_group")
 
     # ------------------------------------------------------------------
     # 2. Viser server + scene renderer.
